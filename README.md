@@ -66,6 +66,7 @@ Usage
 
 Here is code from **example/example.go**, demonstrating how to use GoSNMP:
 
+```go
     // Default is a pointer to a GoSNMP struct that contains sensible defaults
     // eg port 161, community public, etc
     g.Default.Target = "192.168.1.10"
@@ -96,7 +97,7 @@ Here is code from **example/example.go**, demonstrating how to use GoSNMP:
             fmt.Printf("number: %d\n", g.ToBigInt(variable.Value))
         }
     }
-
+```
 Running this example gives the following output (from my printer):
 
     % go run example.go
