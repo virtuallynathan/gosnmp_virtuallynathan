@@ -23,7 +23,7 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 	dumpBytes1(data, fmt.Sprintf("decodeValue: %s", msg), 16)
 	retVal = new(Variable)
 
-	switch Asn1BER(data[0]) {
+	switch ASN1BER(data[0]) {
 
 	case Integer: // 0x02. signed
 		slog.Print("decodeValue: type is Integer")
@@ -33,7 +33,7 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 			return retVal, fmt.Errorf("bytes: % x err: %v", data, err)
 		}
 		retVal.Type = Integer
-		retVal.Value = ret
+		retVal.Value = retVal
 
 	case OctetString: // 0x04
 		slog.Print("decodeValue: type is OctetString")
@@ -72,7 +72,7 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 			return nil, fmt.Errorf("got ipaddress len %d, expected 4", data[1])
 		}
 		retVal.Type = IPAddress
-		var ipv4 string
+		var IPv4 string
 		for i := 2; i < 6; i++ {
 			IPv4 += fmt.Sprintf(".%d", data[i])
 		}
@@ -417,7 +417,7 @@ func parseObjectIdentifier(bytes []byte) (s []int, err error) {
 func parseRawField(data []byte, msg string) (interface{}, int, error) {
 	dumpBytes1(data, fmt.Sprintf("parseRawField: %s", msg), 16)
 
-	switch Asn1BER(data[0]) {
+	switch ASN1BER(data[0]) {
 	case Integer:
 		length := int(data[1])
 		if length == 1 {
@@ -526,7 +526,7 @@ func (b BitStringValue) RightAlign() []byte {
 	return a
 }
 
-func (s SnmpVersion) String() string {
+func (s SNMPVersion) String() string {
 	if s == Version1 {
 		return "1"
 	}

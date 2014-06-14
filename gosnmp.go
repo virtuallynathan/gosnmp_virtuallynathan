@@ -90,20 +90,20 @@ func (x *GoSNMP) Get(oids []string) (result *SNMPPacket, err error) {
 		return nil, fmt.Errorf("oid count (%d) is greater than MAX_OIDS (%d)",
 			oidCount, MaxOids)
 	}
-	// convert oids slice to pdu slice
+	// convert oids slice to data slice
 	var data []SNMPData
 	for _, oid := range oids {
 		data = append(data, SNMPData{oid, Null, nil})
 	}
 	// build up SnmpPacket
-	packetOut := &SnmpPacket{
+	packetOut := &SNMPPacket{
 		Community:  x.Community,
 		Error:      0,
 		ErrorIndex: 0,
 		PDUType:    GetRequest,
 		Version:    x.Version,
 	}
-	return x.send(pdus, packet_out)
+	return x.send(data, packetOut)
 }
 
 //Set send an SNMP SET request using the connection made with Connect
@@ -126,14 +126,14 @@ func (x *GoSNMP) Set(data []SNMPData) (result *SNMPPacket, err error) {
 }
 
 //GetNext send an SNMP GETNEXT request using the connection made with Connect
-func (x *GoSNMP) GetNext(oids []string) (result *SnmpPacket, err error) {
+func (x *GoSNMP) GetNext(oids []string) (result *SNMPPacket, err error) {
 	oidCount := len(oids)
 	if oidCount > MaxOids {
 		return nil, fmt.Errorf("oid count (%d) is greater than MAX_OIDS (%d)",
 			oidCount, MaxOids)
 	}
 
-	// convert oids slice to pdu slice
+	// convert oids slice to data slice
 	var data []SNMPData
 	for _, oid := range oids {
 		data = append(data, SNMPData{oid, Null, nil})
@@ -152,17 +152,17 @@ func (x *GoSNMP) GetNext(oids []string) (result *SnmpPacket, err error) {
 }
 
 //GetBulk send an SNMP GETBULK request
-func (x *GoSNMP) GetBulk(oids []string, nonRepeaters uint8, maxReps uint8) (result *SnmpPacket, err error) {
+func (x *GoSNMP) GetBulk(oids []string, nonRepeaters uint8, maxReps uint8) (result *SNMPPacket, err error) {
 	oidCount := len(oids)
 	if oidCount > MaxOids {
 		return nil, fmt.Errorf("oid count (%d) is greater than MAX_OIDS (%d)",
 			oidCount, MaxOids)
 	}
 
-	// convert oids slice to pdu slice
-	var pdus []SnmpPDU
+	// convert oids slice to data slice
+	var data []SNMPData
 	for _, oid := range oids {
-		pdus = append(pdus, SnmpPDU{oid, Null, nil})
+		data = append(data, SNMPData{oid, Null, nil})
 	}
 
 	// Marshal and send the packet
@@ -173,7 +173,7 @@ func (x *GoSNMP) GetBulk(oids []string, nonRepeaters uint8, maxReps uint8) (resu
 		NonRepeaters:   nonRepeaters,
 		MaxRepetitions: maxReps,
 	}
-	return x.send(pdus, packetOut)
+	return x.send(data, packetOut)
 }
 
 //
@@ -193,7 +193,7 @@ func (x *GoSNMP) GetBulk(oids []string, nonRepeaters uint8, maxReps uint8) (resu
 //       T        T     T
 //
 func Partition(curPos, partitionSize, sliceLen int) bool {
-	if curPos < 0 || curPos >= slice_length {
+	if curPos < 0 || curPos >= sliceLen {
 		return false
 	}
 	if partitionSize == 1 { // redundant, but an obvious optimisation
@@ -208,10 +208,10 @@ func Partition(curPos, partitionSize, sliceLen int) bool {
 	return false
 }
 
-// ToBigInt converts SnmpPDU.Value to big.Int, or returns a zero big.Int for
+// ToBigInt converts SNMPData.Value to big.Int, or returns a zero big.Int for
 // non int-like types (eg strings).
 //
-// This is a convenience function to make working with SnmpPDU's easier - it
+// This is a convenience function to make working with SNMPData's easier - it
 // reduces the need for type assertions. A big.Int is convenient, as SNMP can
 // return int32, uint32, and uint64.
 func ToBigInt(value interface{}) *big.Int {

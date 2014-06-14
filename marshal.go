@@ -18,13 +18,13 @@ import (
 type SNMPVersion uint8
 
 const (
-	Version1  SnmpVersion = 0x0
-	Version2c SnmpVersion = 0x1
+	Version1  SNMPVersion = 0x0
+	Version2c SNMPVersion = 0x1
 )
 
 //SNMPPacket contains all of the info required for an SNMP PAcket
 type SNMPPacket struct {
-	Version        SnmpVersion
+	Version        SNMPVersion
 	Community      string
 	PDUType        PDUType
 	RequestID      uint32
@@ -38,7 +38,7 @@ type SNMPPacket struct {
 //Variable contains the response???? TODO: Figure out what the heck this means
 type Variable struct {
 	Name  []int
-	Type  Asn1BER
+	Type  ASN1BER
 	Value interface{}
 }
 
@@ -76,7 +76,7 @@ type Logger interface {
 var slog Logger
 
 // generic "sender"
-func (x *GoSNMP) send(pdus []SnmpPDU, packetOut *SnmpPacket) (result *SnmpPacket, err error) {
+func (x *GoSNMP) send(pdus []SNMPData, packetOut *SNMPPacket) (result *SNMPPacket, err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("recover: %v", e)
@@ -125,7 +125,7 @@ func (x *GoSNMP) send(pdus []SnmpPDU, packetOut *SnmpPacket) (result *SnmpPacket
 }
 
 //mashalNeg marshals an SNMP message
-func (packet *SnmpPacket) marshalMsg(pdus []SnmpPDU,
+func (packet *SNMPPacket) marshalMsg(data []SNMPData,
 	pdutype PDUType, requestid uint32) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
@@ -137,7 +137,7 @@ func (packet *SnmpPacket) marshalMsg(pdus []SnmpPDU,
 	buf.WriteString(packet.Community)
 
 	// pdu
-	pdu, err := packet.marshalPDU(pdus, requestid)
+	pdu, err := packet.marshalPDU(data, requestid)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func (packet *SnmpPacket) marshalMsg(pdus []SnmpPDU,
 }
 
 //marshalPDU marshals a PDU
-func (packet *SnmpPacket) marshalPDU(pdus []SnmpPDU, requestID uint32) ([]byte, error) {
+func (packet *SNMPPacket) marshalPDU(data []SNMPData, requestID uint32) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	// requestid
@@ -178,7 +178,7 @@ func (packet *SnmpPacket) marshalPDU(pdus []SnmpPDU, requestID uint32) ([]byte, 
 	}
 
 	// varbind list
-	vbl, err := packet.marshalVBL(pdus)
+	vbl, err := packet.marshalVBL(data)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +199,7 @@ func (packet *SnmpPacket) marshalPDU(pdus []SnmpPDU, requestID uint32) ([]byte, 
 }
 
 // marshal a varbind list
-func (packet *SnmpPacket) marshalVBL(pdus []SnmpPDU) ([]byte, error) {
+func (packet *SNMPPacket) marshalVBL(data []SNMPData) ([]byte, error) {
 
 	variableBuf := new(bytes.Buffer)
 	for _, pdu := range pdus {
@@ -224,8 +224,8 @@ func (packet *SnmpPacket) marshalVBL(pdus []SnmpPDU) ([]byte, error) {
 }
 
 // marshal a varbind
-func marshalVarbind(pdu *SnmpPDU) ([]byte, error) {
-	oid, err := marshalOID(pdu.Name)
+func marshalVarbind(data *SNMPData) ([]byte, error) {
+	oid, err := marshalOID(data.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -260,9 +260,9 @@ func marshalVarbind(pdu *SnmpPDU) ([]byte, error) {
 
 // -- Unmarshalling Logic ------------------------------------------------------
 
-func unmarshal(packet []byte) (*SnmpPacket, error) {
+func unmarshal(packet []byte) (*SNMPPacket, error) {
 	response := new(SnmpPacket)
-	response.Variables = make([]SnmpPDU, 0, 5)
+	response.Variables = make([]SNMPData, 0, 5)
 
 	// Start parsing the packet
 	cursor := 0
@@ -313,7 +313,7 @@ func unmarshal(packet []byte) (*SnmpPacket, error) {
 	return response, nil
 }
 
-func unmarshalResponse(packet []byte, response *SnmpPacket, length int, requestType PDUType) (*SnmpPacket, error) {
+func unmarshalResponse(packet []byte, response *SNMPPacket, length int, requestType PDUType) (*SNMPPacket, error) {
 	cursor := 0
 	dumpBytes1(packet, "SNMP Packet is GET RESPONSE", 16)
 	response.PDUType = requestType
@@ -383,8 +383,7 @@ func unmarshalResponse(packet []byte, response *SnmpPacket, length int, requestT
 }
 
 // unmarshal a Varbind list
-func unmarshalVBL(packet []byte, response *SnmpPacket,
-	length int) (*SnmpPacket, error) {
+func unmarshalVBL(packet []byte, response *SNMPPacket, length int) (*SNMPPacket, error) {
 
 	dumpBytes1(packet, "\n=== unmarshalVBL()", 32)
 	var cursor, cursorInc int
