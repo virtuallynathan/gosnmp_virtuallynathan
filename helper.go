@@ -1,4 +1,4 @@
-// Copyright 2012 Andreas Louca, 2013 Sonia Hamilton. All rights reserved.  Use
+// Copyright 2012 Andreas Louca, 2013 Sonia Hamilton, 2014 Nathan Owens. All rights reserved.  Use
 // of this source code is governed by a BSD-style license that can be found in
 // the LICENSE file.
 
@@ -19,27 +19,23 @@ import (
 	"strings"
 )
 
-// -- helper functions (mostly) in alphabetical order --------------------------
-
 func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 	dumpBytes1(data, fmt.Sprintf("decodeValue: %s", msg), 16)
 	retVal = new(Variable)
 
 	switch Asn1BER(data[0]) {
 
-	case Integer:
-		// 0x02. signed
+	case Integer: // 0x02. signed
 		slog.Print("decodeValue: type is Integer")
 		length, cursor := parseLength(data)
 		if ret, err := parseInt(data[cursor:length]); err != nil {
 			slog.Printf("%v:", err)
 			return retVal, fmt.Errorf("bytes: % x err: %v", data, err)
-		} else {
-			retVal.Type = Integer
-			retVal.Value = ret
 		}
-	case OctetString:
-		// 0x04
+		retVal.Type = Integer
+		retVal.Value = ret
+
+	case OctetString: // 0x04
 		slog.Print("decodeValue: type is OctetString")
 		length, cursor := parseLength(data)
 		retVal.Type = OctetString
@@ -50,13 +46,11 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 		} else {
 			retVal.Value = string(data[cursor:length])
 		}
-	case Null:
-		// 0x05
+	case Null: // 0x05
 		slog.Print("decodeValue: type is Null")
 		retVal.Type = Null
 		retVal.Value = nil
-	case ObjectIdentifier:
-		// 0x06
+	case ObjectIdentifier: // 0x06
 		slog.Print("decodeValue: type is ObjectIdentifier")
 		rawOid, _, err := parseRawField(data, "OID")
 		if err != nil {
@@ -69,10 +63,9 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 		}
 		retVal.Type = ObjectIdentifier
 		retVal.Value = oidToString(oid)
-	case IpAddress:
-		// 0x40
+	case IPAddress: // 0x40
 		slog.Print("decodeValue: type is IpAddress")
-		// total hack - IPv6? What IPv6...
+		//TODO: IPv6 Support
 		if len(data) < 6 {
 			return nil, fmt.Errorf("not enough data for ipaddress: % x", data)
 		} else if data[1] != 4 {
@@ -84,8 +77,7 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 			ipv4 += fmt.Sprintf(".%d", data[i])
 		}
 		retVal.Value = ipv4[1:]
-	case Counter32:
-		// 0x41. unsigned
+	case Counter32: // 0x41. unsigned
 		slog.Print("decodeValue: type is Counter32")
 		length, cursor := parseLength(data)
 		ret, err := parseUint(data[cursor:length])
@@ -95,8 +87,7 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 		}
 		retVal.Type = Counter32
 		retVal.Value = ret
-	case Gauge32:
-		// 0x42. unsigned
+	case Gauge32: // 0x42. unsigned
 		slog.Print("decodeValue: type is Gauge32")
 		length, cursor := parseLength(data)
 		ret, err := parseUint(data[cursor:length])
@@ -106,8 +97,7 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 		}
 		retVal.Type = Gauge32
 		retVal.Value = ret
-	case TimeTicks:
-		// 0x43
+	case TimeTicks: // 0x43
 		slog.Print("decodeValue: type is TimeTicks")
 		length, cursor := parseLength(data)
 		ret, err := parseInt(data[cursor:length])
@@ -117,8 +107,7 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 		}
 		retVal.Type = TimeTicks
 		retVal.Value = ret
-	case Counter64:
-		// 0x46
+	case Counter64: // 0x46
 		slog.Print("decodeValue: type is Counter64")
 		length, cursor := parseLength(data)
 		ret, err := parseInt64(data[cursor:length])
@@ -128,13 +117,11 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 		}
 		retVal.Type = Counter64
 		retVal.Value = ret
-	case NoSuchObject:
-		// 0x80
+	case NoSuchObject: // 0x80
 		slog.Print("decodeValue: type is NoSuchObject")
 		retVal.Type = NoSuchObject
 		retVal.Value = nil
-	case NoSuchInstance:
-		// 0x81
+	case NoSuchInstance: // 0x81
 		slog.Print("decodeValue: type is NoSuchInstance")
 		retVal.Type = NoSuchInstance
 		retVal.Value = nil
@@ -147,7 +134,7 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 	return
 }
 
-// dump bytes in a format similar to Wireshark
+//dump bytes in a format similar to Wireshark
 func dumpBytes1(data []byte, msg string, maxlength int) {
 	for i, b := range data {
 		if i >= maxlength {
@@ -233,14 +220,14 @@ func marshalLength(length int) ([]byte, error) {
 		return nil, err
 	}
 
-	buf_bytes, err2 := buf.ReadBytes(0) // can't use buf.Bytes() - trailing 00's
+	bufBytes, err2 := buf.ReadBytes(0) // can't use buf.Bytes() - trailing 00's
 	if err2 != nil {
 		return nil, err
 	}
-	buf_bytes = buf_bytes[0 : len(buf_bytes)-1] // remove trailing 00
+	bufBytes = bufBytes[0 : len(bufBytes)-1] // remove trailing 00
 
-	header := []byte{byte(128 | len(buf_bytes))}
-	return append(header, buf_bytes...), nil
+	header := []byte{byte(128 | len(bufBytes))}
+	return append(header, bufBytes...), nil
 }
 
 func marshalObjectIdentifier(oid []int) (ret []byte, err error) {
@@ -367,8 +354,7 @@ func parseInt(bytes []byte) (int, error) {
 	return int(ret64), nil
 }
 
-// parseLength parses and calculates an snmp packet length
-//
+// parseLength parses and calculates an snmp packet lengths
 // http://luca.ntop.org/Teaching/Appunti/asn1.html
 //
 // Length octets. There are two forms: short (for lengths between 0 and 127),
@@ -388,13 +374,13 @@ func parseLength(bytes []byte) (length int, cursor int) {
 		length += 2
 		cursor += 2
 	} else {
-		num_octets := int(bytes[1]) & 127
-		for i := 0; i < num_octets; i++ {
+		numOctets := int(bytes[1]) & 127
+		for i := 0; i < numOctets; i++ {
 			length <<= 8
 			length += int(bytes[2+i])
 		}
-		length += 2 + num_octets
-		cursor += 2 + num_octets
+		length += 2 + numOctets
+		cursor += 2 + numOctets
 	}
 	return length, cursor
 }
@@ -436,10 +422,9 @@ func parseRawField(data []byte, msg string) (interface{}, int, error) {
 		length := int(data[1])
 		if length == 1 {
 			return int(data[2]), 3, nil
-		} else {
-			resp, err := parseUint(data[2:(2 + length)])
-			return resp, 2 + length, err
 		}
+		resp, err := parseUint(data[2:(2 + length)])
+		return resp, 2 + length, err
 	case OctetString:
 		length, cursor := parseLength(data)
 		return string(data[cursor:length]), length, nil
@@ -450,8 +435,6 @@ func parseRawField(data []byte, msg string) (interface{}, int, error) {
 	default:
 		return nil, 0, fmt.Errorf("Unknown field type: %x\n", data[0])
 	}
-
-	return nil, 0, nil
 }
 
 func parseUint16(content []byte) int {
@@ -487,12 +470,10 @@ func parseUint(bytes []byte) (uint, error) {
 	return uint(ret64), nil
 }
 
+//TODO: Figure out if this is still an issue?
 // Issue 4389: math/big: add SetUint64 and Uint64 functions to *Int
-//
 // uint64ToBigInt copied from: http://github.com/cznic/mathutil/blob/master/mathutil.go#L341
-//
 // replace with Uint64ToBigInt or equivalent when using Go 1.1
-
 var uint64ToBigIntDelta big.Int
 
 func init() {
@@ -507,8 +488,6 @@ func uint64ToBigInt(n uint64) *big.Int {
 	y := big.NewInt(int64(n - uint64(math.MaxInt64) - 1))
 	return y.Add(y, &uint64ToBigIntDelta)
 }
-
-// -- Bit String ---------------------------------------------------------------
 
 // BitStringValue is the structure to use when you want an ASN.1 BIT STRING type. A
 // bit string is padded up to the nearest byte in memory and the number of
@@ -546,8 +525,6 @@ func (b BitStringValue) RightAlign() []byte {
 
 	return a
 }
-
-// -- SnmpVersion --------------------------------------------------------------
 
 func (s SnmpVersion) String() string {
 	if s == Version1 {

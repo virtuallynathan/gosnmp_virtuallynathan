@@ -16,35 +16,24 @@ import (
 	"time"
 )
 
-// MAX_OIDS is the maximum number of oids allowed in a Get()
-const MAX_OIDS = 60
+// MaxOids is the maximum number of oids allowed in a Get()
+const MaxOids = 60
 
+//GoSNMP is the struct containing info about an SNMP connection
 type GoSNMP struct {
-
-	// Target is an ipv4 address
-	Target string
-
-	// Port is a udp port
-	Port uint16
-
-	// Community is an SNMP Community string
-	Community string
-
-	// Version is an SNMP Version
-	Version SnmpVersion
-
-	// Timeout is the timeout for the SNMP Query
-	Timeout time.Duration
-
-	// Conn is net connection to use, typically establised using GoSNMP.Connect()
-	Conn net.Conn
-
+	Target    string        //Target is an ipv4 address
+	Port      uint16        //Port is a udp port
+	Community string        //Community is an SNMP Community string
+	Version   SnmpVersion   //Version is an SNMP Version
+	Timeout   time.Duration //Timeout is the timeout for the SNMP Query
+	Conn      net.Conn      //Conn is net connection to use, typically establised using GoSNMP.Connect()
 	// Logger is the GoSNMP.Logger to use for debugging. If nil, debugging
 	// output will be discarded (/dev/null). For verbose logging to stdout:
 	// x.Logger = log.New(os.Stdout, "", 0)
 	Logger Logger
 }
 
+//Default contains the defaul values for an SNMP connection if none are provided
 var Default = &GoSNMP{
 	Port:      161,
 	Community: "public",
@@ -52,23 +41,19 @@ var Default = &GoSNMP{
 	Timeout:   time.Duration(2) * time.Second,
 }
 
-// SnmpPDU will be used when doing SNMP Set's
-type SnmpPDU struct {
-
-	// Name is an oid in string format eg "1.3.6.1.4.9.27"
-	Name string
-
-	// The type of the value eg Integer
-	Type Asn1BER
-
-	// The value to be set by the SNMP set
-	Value interface{}
+//SNMPData will be used when doing SNMP Set's
+type SNMPData struct {
+	Name  string      //Name is an oid in string format eg "1.3.6.1.4.9.27"
+	Type  ASN1BER     //The type of the value eg Integer
+	Value interface{} // The value to be set by the SNMP set
 }
 
-type Asn1BER byte
+//ASN1BER is a typed byte containing for decoding SNMP
+type ASN1BER byte
 
 const (
-	EndOfContents     Asn1BER = 0x00
+	//EndOfContents is an ASN1BER code for the end of a PDU
+	EndOfContents     ASN1BER = 0x00
 	Boolean                   = 0x01
 	Integer                   = 0x02
 	BitString                 = 0x03
@@ -76,7 +61,7 @@ const (
 	Null                      = 0x05
 	ObjectIdentifier          = 0x06
 	ObjectDescription         = 0x07
-	IpAddress                 = 0x40
+	IPAddress                 = 0x40
 	Counter32                 = 0x41
 	Gauge32                   = 0x42
 	TimeTicks                 = 0x43
@@ -88,10 +73,7 @@ const (
 	NoSuchInstance            = 0x81
 )
 
-//
-// Public Functions (main interface)
-//
-
+//Connect makes an SNMP connection using net.DialTimeout
 func (x *GoSNMP) Connect() error {
 	Conn, err := net.DialTimeout("udp", fmt.Sprintf("%s:%d", x.Target, x.Port), x.Timeout)
 	if err == nil {
@@ -102,20 +84,20 @@ func (x *GoSNMP) Connect() error {
 	return nil
 }
 
-// Send an SNMP GET request
-func (x *GoSNMP) Get(oids []string) (result *SnmpPacket, err error) {
-	oid_count := len(oids)
-	if oid_count > MAX_OIDS {
+//Get send an SNMP GET request using the connection made with Connect
+func (x *GoSNMP) Get(oids []string) (result *SNMPPacket, err error) {
+	oidCount := len(oids)
+	if oidCount > MaxOids {
 		return nil, fmt.Errorf("oid count (%d) is greater than MAX_OIDS (%d)",
-			oid_count, MAX_OIDS)
+			oidCount, MaxOids)
 	}
 	// convert oids slice to pdu slice
-	var pdus []SnmpPDU
+	var data []SNMPData
 	for _, oid := range oids {
-		pdus = append(pdus, SnmpPDU{oid, Null, nil})
+		data = append(data, SNMPData{oid, Null, nil})
 	}
 	// build up SnmpPacket
-	packet_out := &SnmpPacket{
+	packetOut := &SnmpPacket{
 		Community:  x.Community,
 		Error:      0,
 		ErrorIndex: 0,
@@ -125,41 +107,41 @@ func (x *GoSNMP) Get(oids []string) (result *SnmpPacket, err error) {
 	return x.send(pdus, packet_out)
 }
 
-// Send an SNMP SET request
-func (x *GoSNMP) Set(pdus []SnmpPDU) (result *SnmpPacket, err error) {
-	if len(pdus) != 1 {
+//Set send an SNMP SET request using the connection made with Connect
+func (x *GoSNMP) Set(data []SNMPData) (result *SNMPPacket, err error) {
+	if len(data) != 1 {
 		return nil, fmt.Errorf("gosnmp currently only supports SNMP SETs for one oid")
 	}
-	if pdus[0].Type != Integer {
+	if data[0].Type != Integer {
 		return nil, fmt.Errorf("gosnmp currently only supports SNMP SETs for Integers")
 	}
-	// build up SnmpPacket
-	packet_out := &SnmpPacket{
+	// build up SNMPPacket
+	packetOut := &SNMPPacket{
 		Community:  x.Community,
 		Error:      0,
 		ErrorIndex: 0,
 		PDUType:    SetRequest,
 		Version:    x.Version,
 	}
-	return x.send(pdus, packet_out)
+	return x.send(data, packetOut)
 }
 
-// Send an SNMP GETNEXT request
+//GetNext send an SNMP GETNEXT request using the connection made with Connect
 func (x *GoSNMP) GetNext(oids []string) (result *SnmpPacket, err error) {
-	oid_count := len(oids)
-	if oid_count > MAX_OIDS {
+	oidCount := len(oids)
+	if oidCount > MaxOids {
 		return nil, fmt.Errorf("oid count (%d) is greater than MAX_OIDS (%d)",
-			oid_count, MAX_OIDS)
+			oidCount, MaxOids)
 	}
 
 	// convert oids slice to pdu slice
-	var pdus []SnmpPDU
+	var data []SNMPData
 	for _, oid := range oids {
-		pdus = append(pdus, SnmpPDU{oid, Null, nil})
+		data = append(data, SNMPData{oid, Null, nil})
 	}
 
 	// Marshal and send the packet
-	packet_out := &SnmpPacket{
+	packetOut := &SNMPPacket{
 		Community:  x.Community,
 		Error:      0,
 		ErrorIndex: 0,
@@ -167,10 +149,10 @@ func (x *GoSNMP) GetNext(oids []string) (result *SnmpPacket, err error) {
 		Version:    x.Version,
 	}
 
-	return x.send(pdus, packet_out)
+	return x.send(data, packetOut)
 }
 
-// send an SNMP GETBULK request
+//GetBulk send an SNMP GETBULK request
 func (x *GoSNMP) GetBulk(oids []string, non_repeaters uint8, max_repetitions uint8) (result *SnmpPacket, err error) {
 	oid_count := len(oids)
 	if oid_count > MAX_OIDS {
