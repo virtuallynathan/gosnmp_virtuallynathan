@@ -1,4 +1,4 @@
-// Copyright 2013 Sonia Hamilton. All rights reserved.  Use of this
+// Copyright 2013 Sonia Hamilton, 2014 Nathan Owens All rights reserved.  Use of this
 // source code is governed by a BSD-style license that can be found in
 // the LICENSE file.
 
@@ -16,13 +16,8 @@ var _ = fmt.Sprintf("dummy") // dummy
 var _ = ioutil.Discard       // dummy
 var _ = os.DevNull           // dummy
 
-// Tests in alphabetical order of function being tested
-
-// -- Enmarshal ----------------------------------------------------------------
-
 // "Enmarshal" not "Marshal" - easier to select tests via a regex
-
-type testsEnmarshalVarbindPos struct {
+type testsEnmarshalVarBindPos struct {
 	oid string
 	// start and finish position of bytes are calculated with application layer
 	// starting at byte 0. The easiest way to calculate these values is to use
@@ -47,7 +42,7 @@ type testsEnmarshalT struct {
 	pduStart    int                        // start position of the pdu
 	vblStart    int                        // start position of the vbl
 	finish      int                        // finish position of pdu, vbl and message - all the same
-	vbPos       []testsEnmarshalVarbindPos // a slice of positions containing start and finish of each varbind
+	vbPos       []testsEnmarshalVarBindPos // a slice of positions containing start and finish of each varbind
 
 }
 
@@ -57,8 +52,8 @@ var testsEnmarshal = []testsEnmarshalT{
 		"public",
 		GetRequest,
 		1871507044,
-		kyoceraRequestBytes,
-		"kyocera_request",
+		kyoceraReqBytes,
+		"kyoceraReq",
 		0x0e, // pdu start
 		0x1d, // vbl start
 		0xa0, // finish
@@ -78,8 +73,8 @@ var testsEnmarshal = []testsEnmarshalT{
 		"privatelab",
 		SetRequest,
 		526895288,
-		port_on_outgoing1,
-		"port_on_outgoing1",
+		portOnOutgoing1,
+		"portOnOutgoing1",
 		0x11, // pdu start
 		0x1f, // vbl start
 		0x36, // finish
@@ -93,11 +88,11 @@ var testsEnmarshal = []testsEnmarshalT{
 		SetRequest,
 		1826072803,
 		portOffOutgoing1,
-		"port_off_outgoing1",
+		"portOffOutgoing1",
 		0x11, // pdu start
 		0x1f, // vbl start
 		0x36, // finish
-		[]testsEnmarshalVarbindPosition{
+		[]testsEnmarshalVarBindPosition{
 			{"1.3.6.1.4.1.318.1.1.4.4.2.1.3.5", 0x21, 0x36, Integer, 2},
 		},
 	},
@@ -108,24 +103,21 @@ var testsEnmarshal = []testsEnmarshalT{
 // vb_pos_pdus returns a slice of oids in the given test
 func vbPosPDUs(test testsEnmarshalT) (data []SNMPData) {
 	for _, vbp := range test.vbPos {
-		pdu := SnmpPDU{vbp.oid, vbp.pduType, vbp.pduVal}
-		data = append(data, pdu)
+		data := SNMPData{vbp.oid, vbp.pduType, vbp.pduVal}
+		pdus = append(pdus, data)
 	}
 	return
 }
 
 // check_byte_equality walks the bytes in test_bytes, and compares them to good_bytes
-func checkByteEq(t *testing.T, test testsEnmarshalT, testBytes []byte,
-	start int, finish int) {
-
+func checkByteEq(t *testing.T, test testsEnmarshalT, testBytes []byte, start int, finish int) {
 	testBytesLen := len(testBytes)
 
 	goodBytes := test.goodBytes()
 	goodBytes = goodBytes[start : finish+1]
 	for cursor := range goodBytes {
 		if testBytesLen < cursor {
-			t.Errorf("%s: test_bytes_len (%d) < cursor (%d)", test.funcName,
-				testBytesLen, cursor)
+			t.Errorf("%s: test_bytes_len (%d) < cursor (%d)", test.funcName, testBytesLen, cursor)
 			break
 		}
 		if testBytes[cursor] != goodBytes[cursor] {
@@ -141,28 +133,25 @@ func checkByteEq(t *testing.T, test testsEnmarshalT, testBytes []byte,
 
 // Enmarshal tests in order that should be used for troubleshooting
 // ie check each varbind is working, then the varbind list, etc
-
-func TestEnmarshalVarbind(t *testing.T) {
-
+func TestEnmarshalVarBind(t *testing.T) {
 	// slog = log.New(os.Stdout, "", 0) // for verbose debugging
 	slog = log.New(ioutil.Discard, "", 0)
 
 	for _, test := range testsEnmarshal {
 		for j, test2 := range test.vbPos {
-			snmppdu := &SnmpPDU{test2.oid, test2.pduType, test2.pduVal}
-			testBytes, err := marshalVarbind(snmppdu)
+			snmppdu := &SNMPData{test2.oid, test2.pduType, test2.pduVal}
+			testBytes, err := marshalVarBind(snmppdu)
 			if err != nil {
 				t.Errorf("#%s:%d:%s err returned: %v",
 					test.funcName, j, test2.oid, err)
 			}
 
-			check_byte_equality(t, test, testBytes, test2.start, test2.finish)
+			checkByteEq(t, test, testBytes, test2.start, test2.finish)
 		}
 	}
 }
 
 func TestEnmarshalVBL(t *testing.T) {
-
 	// slog = log.New(os.Stdout, "", 0) // for verbose debugging
 	slog = log.New(ioutil.Discard, "", 0)
 
@@ -170,7 +159,7 @@ func TestEnmarshalVBL(t *testing.T) {
 		x := &SNMPPacket{
 			Community: test.community,
 			Version:   test.version,
-			RequestID: test.requestid,
+			RequestID: test.requestID,
 		}
 
 		data := vbPosPDUs(test)
@@ -185,7 +174,6 @@ func TestEnmarshalVBL(t *testing.T) {
 }
 
 func TestEnmarshalPDU(t *testing.T) {
-
 	// slog = log.New(os.Stdout, "", 0) // for verbose debugging
 	slog = log.New(ioutil.Discard, "", 0)
 
@@ -203,12 +191,11 @@ func TestEnmarshalPDU(t *testing.T) {
 			t.Errorf("#%s: marshalPDU() err returned: %v", test.funcName, err)
 		}
 
-		check_byte_equality(t, test, testBytes, test.pdu_start, test.finish)
+		checkByteEq(t, test, testBytes, test.pdu_start, test.finish)
 	}
 }
 
 func TestEnmarshalMsg(t *testing.T) {
-
 	// slog = log.New(os.Stdout, "", 0) // for verbose debugging
 	slog = log.New(ioutil.Discard, "", 0)
 
@@ -225,7 +212,7 @@ func TestEnmarshalMsg(t *testing.T) {
 		if err != nil {
 			t.Errorf("#%s: marshal() err returned: %v", test.funcName, err)
 		}
-		check_byte_equality(t, test, testBytes, 0, test.finish)
+		checkByteEq(t, test, testBytes, 0, test.finish)
 	}
 }
 
@@ -328,12 +315,12 @@ var testsUnmarshal = []struct {
 				},
 				{
 					Name:  "1.3.6.1.2.1.3.1.1.3.10.1.10.11.0.2",
-					Type:  IpAddress,
+					Type:  IPAddress,
 					Value: "10.11.0.2",
 				},
 				{
 					Name:  "1.3.6.1.2.1.4.20.1.1.110.143.197.1",
-					Type:  IpAddress,
+					Type:  IPAddress,
 					Value: "110.143.197.1",
 				},
 				{
@@ -349,7 +336,7 @@ var testsUnmarshal = []struct {
 			},
 		},
 	},
-	{port_on_incoming1,
+	{portOnIncoming1,
 		&SnmpPacket{
 			Version:    Version1,
 			Community:  "privatelab",
@@ -357,7 +344,7 @@ var testsUnmarshal = []struct {
 			RequestID:  526895288,
 			Error:      0,
 			ErrorIndex: 0,
-			Variables: []SnmpPDU{
+			Variables: []SNMPData{
 				{
 					Name:  "1.3.6.1.4.1.318.1.1.4.4.2.1.3.5",
 					Type:  Integer,
@@ -366,7 +353,7 @@ var testsUnmarshal = []struct {
 			},
 		},
 	},
-	{port_off_incoming1,
+	{portOffIncoming1,
 		&SnmpPacket{
 			Version:    Version1,
 			Community:  "privatelab",
@@ -374,7 +361,7 @@ var testsUnmarshal = []struct {
 			RequestID:  1826072803,
 			Error:      0,
 			ErrorIndex: 0,
-			Variables: []SnmpPDU{
+			Variables: []SNMPData{
 				{
 					Name:  "1.3.6.1.4.1.318.1.1.4.4.2.1.3.5",
 					Type:  Integer,
@@ -383,7 +370,7 @@ var testsUnmarshal = []struct {
 			},
 		},
 	},
-	{cisco_getnext_response_bytes,
+	{ciscoGetNextRespBytes,
 		&SnmpPacket{
 			Version:    Version2c,
 			Community:  "public",
@@ -391,10 +378,10 @@ var testsUnmarshal = []struct {
 			RequestID:  1528674030,
 			Error:      0,
 			ErrorIndex: 0,
-			Variables: []SnmpPDU{
+			Variables: []SNMPData{
 				{
 					Name:  "1.3.6.1.2.1.3.1.1.3.2.1.192.168.104.2",
-					Type:  IpAddress,
+					Type:  IPAddress,
 					Value: "192.168.104.2",
 				},
 				{
@@ -425,7 +412,7 @@ var testsUnmarshal = []struct {
 			},
 		},
 	},
-	{cisco_getbulk_response_bytes,
+	{ciscoGetBulkRespBytes,
 		&SnmpPacket{
 			Version:        Version2c,
 			Community:      "public",
@@ -433,7 +420,7 @@ var testsUnmarshal = []struct {
 			RequestID:      250000266,
 			NonRepeaters:   0,
 			MaxRepetitions: 10,
-			Variables: []SnmpPDU{
+			Variables: []SNMPData{
 				{
 					Name:  "1.3.6.1.2.1.1.9.1.4.1",
 					Type:  TimeTicks,
@@ -490,14 +477,13 @@ var testsUnmarshal = []struct {
 }
 
 func TestUnmarshal(t *testing.T) {
-
 	// slog = log.New(os.Stdout, "", 0) // for verbose debugging
 	slog = log.New(ioutil.Discard, "", 0)
 
 SANITY:
 	for i, test := range testsUnmarshal {
 		var err error
-		var res *SnmpPacket
+		var res *SNMPPacket
 
 		if res, err = unmarshal(test.in()); err != nil {
 			t.Errorf("#%d, Unmarshal returned err: %v", i, err)
@@ -566,18 +552,13 @@ SANITY:
 }
 
 // -----------------------------------------------------------------------------
-
 /*
-
 * byte dumps generated using tcpdump and github.com/jteeuwen/go-bindata eg
   `sudo tcpdump -s 0 -i eth0 -w cisco.pcap host 203.50.251.17 and port 161`
-
 * Frame, Ethernet II, IP and UDP layers removed from generated bytes
 */
-
 /*
-kyocera_response_bytes corresponds to the response section of this snmpget
-
+kyoceraRespBytes corresponds to the response section of this snmpget
 Simple Network Management Protocol
   version: v2c (1)
   community: public
@@ -620,8 +601,7 @@ func kyoceraRespBytes() []byte {
 }
 
 /*
-cisco_response_bytes corresponds to the response section of this snmpget:
-
+ciscoRespBytes corresponds to the response section of this snmpget:
 % snmpget -On -v2c -c public 203.50.251.17 1.3.6.1.2.1.1.7.0 1.3.6.1.2.1.2.2.1.2.6 1.3.6.1.2.1.2.2.1.5.3 1.3.6.1.2.1.2.2.1.7.2 1.3.6.1.2.1.2.2.1.9.3 1.3.6.1.2.1.3.1.1.2.10.1.10.11.0.17 1.3.6.1.2.1.3.1.1.3.10.1.10.11.0.2 1.3.6.1.2.1.4.20.1.1.110.143.197.1 1.3.6.1.66.1 1.3.6.1.2.1.1.2.0
 .1.3.6.1.2.1.1.7.0 = INTEGER: 78
 .1.3.6.1.2.1.2.2.1.2.6 = STRING: GigabitEthernet0
@@ -663,8 +643,7 @@ func ciscoRespBytes() []byte {
 }
 
 /*
-kyocera_request_bytes corresponds to the request section of this snmpget:
-
+kyoceraReqBytes corresponds to the request section of this snmpget:
 snmpget -On -v2c -c public 192.168.1.10 1.3.6.1.2.1.1.7.0 1.3.6.1.2.1.2.2.1.10.1 1.3.6.1.2.1.2.2.1.5.1 1.3.6.1.2.1.1.4.0 1.3.6.1.2.1.43.5.1.1.15.1 1.3.6.1.2.1.4.21.1.1.127.0.0.1 1.3.6.1.4.1.23.2.5.1.1.1.4.2 1.3.6.1.2.1.1.3.0
 .1.3.6.1.2.1.1.7.0 = INTEGER: 104
 .1.3.6.1.2.1.2.2.1.10.1 = Counter32: 144058856
@@ -697,12 +676,9 @@ func kyoceraReqBytes() []byte {
 }
 
 // === snmpset dumps ===
-
 /*
-port_on_*1() correspond to this snmpset and response:
-
+portOn*1() correspond to this snmpset and response:
 snmpset -v 1 -c privatelab 192.168.100.124 .1.3.6.1.4.1.318.1.1.4.4.2.1.3.5 i 1
-
 Simple Network Management Protocol
   version: version-1 (0)
   community: privatelab
@@ -751,10 +727,8 @@ func portOnIncoming1() []byte {
 }
 
 /*
-port_off_*1() correspond to this snmpset and response:
-
+portOff*1() correspond to this snmpset and response:
 snmpset -v 1 -c privatelab 192.168.100.124 .1.3.6.1.4.1.318.1.1.4.4.2.1.3.5 i 2
-
 Simple Network Management Protocol
   version: version-1 (0)
   community: privatelab
@@ -842,8 +816,7 @@ func ciscoGetNextReqBytes() []byte {
 	}
 }
 
-/* cisco getbulk bytes corresponds to this snmpbulkget command:
-
+/* ciscoGetBulk*Bytes corresponds to this snmpbulkget command:
 $ snmpbulkget -v2c -cpublic  127.0.0.1:161 1.3.6.1.2.1.1.9.1.3.52
 iso.3.6.1.2.1.1.9.1.4.1 = Timeticks: (21) 0:00:00.21
 iso.3.6.1.2.1.1.9.1.4.2 = Timeticks: (21) 0:00:00.21
