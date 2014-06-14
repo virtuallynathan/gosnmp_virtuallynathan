@@ -22,7 +22,7 @@ var _ = os.DevNull           // dummy
 
 // "Enmarshal" not "Marshal" - easier to select tests via a regex
 
-type testsEnmarshalVarbindPosition struct {
+type testsEnmarshalVarbindPos struct {
 	oid string
 	// start and finish position of bytes are calculated with application layer
 	// starting at byte 0. The easiest way to calculate these values is to use
@@ -31,37 +31,33 @@ type testsEnmarshalVarbindPosition struct {
 	// and choose snmp. Click on each varbind and the "packet bytes" window
 	// will highlight the corresponding bytes, then the "eyeball tool" can be
 	// used to find the start and finish values...
-	start     int
-	finish    int
-	pdu_type  Asn1BER
-	pdu_value interface{}
+	start   int
+	finish  int
+	pduType ASN1BER
+	pduVal  interface{}
 }
 
-type testsEnmarshal_t struct {
-	version      SnmpVersion
-	community    string
-	request_type PDUType
-	requestid    uint32
-	// function and function name returning bytes from tcpdump
-	good_bytes func() []byte
-	func_name  string // could do this via reflection
-	// start position of the pdu
-	pdu_start int
-	// start position of the vbl
-	vbl_start int
-	// finish position of pdu, vbl and message - all the same
-	finish int
-	// a slice of positions containing start and finish of each varbind
-	vb_positions []testsEnmarshalVarbindPosition
+type testsEnmarshalT struct {
+	version     SNMPVersion
+	community   string
+	requestType PDUType
+	requestID   uint32
+	goodBytes   func() []byte              // function and function name returning bytes from tcpdump
+	funcName    string                     // could do this via reflection
+	pduStart    int                        // start position of the pdu
+	vblStart    int                        // start position of the vbl
+	finish      int                        // finish position of pdu, vbl and message - all the same
+	vbPos       []testsEnmarshalVarbindPos // a slice of positions containing start and finish of each varbind
+
 }
 
-var testsEnmarshal = []testsEnmarshal_t{
+var testsEnmarshal = []testsEnmarshalT{
 	{
 		Version2c,
 		"public",
 		GetRequest,
 		1871507044,
-		kyocera_request_bytes,
+		kyoceraRequestBytes,
 		"kyocera_request",
 		0x0e, // pdu start
 		0x1d, // vbl start
@@ -96,7 +92,7 @@ var testsEnmarshal = []testsEnmarshal_t{
 		"privatelab",
 		SetRequest,
 		1826072803,
-		port_off_outgoing1,
+		portOffOutgoing1,
 		"port_off_outgoing1",
 		0x11, // pdu start
 		0x1f, // vbl start
@@ -110,34 +106,34 @@ var testsEnmarshal = []testsEnmarshal_t{
 // helpers for Enmarshal tests
 
 // vb_pos_pdus returns a slice of oids in the given test
-func vb_pos_pdus(test testsEnmarshal_t) (pdus []SnmpPDU) {
-	for _, vbp := range test.vb_positions {
-		pdu := SnmpPDU{vbp.oid, vbp.pdu_type, vbp.pdu_value}
-		pdus = append(pdus, pdu)
+func vbPosPDUs(test testsEnmarshalT) (data []SNMPData) {
+	for _, vbp := range test.vbPos {
+		pdu := SnmpPDU{vbp.oid, vbp.pduType, vbp.pduVal}
+		data = append(data, pdu)
 	}
 	return
 }
 
 // check_byte_equality walks the bytes in test_bytes, and compares them to good_bytes
-func check_byte_equality(t *testing.T, test testsEnmarshal_t, test_bytes []byte,
+func checkByteEq(t *testing.T, test testsEnmarshalT, testBytes []byte,
 	start int, finish int) {
 
-	test_bytes_len := len(test_bytes)
+	testBytesLen := len(testBytes)
 
-	good_bytes := test.good_bytes()
-	good_bytes = good_bytes[start : finish+1]
-	for cursor := range good_bytes {
-		if test_bytes_len < cursor {
-			t.Errorf("%s: test_bytes_len (%d) < cursor (%d)", test.func_name,
-				test_bytes_len, cursor)
+	goodBytes := test.goodBytes()
+	goodBytes = goodBytes[start : finish+1]
+	for cursor := range goodBytes {
+		if testBytesLen < cursor {
+			t.Errorf("%s: test_bytes_len (%d) < cursor (%d)", test.funcName,
+				testBytesLen, cursor)
 			break
 		}
-		if test_bytes[cursor] != good_bytes[cursor] {
+		if testBytes[cursor] != goodBytes[cursor] {
 			t.Errorf("%s: cursor %d: test_bytes != good_bytes:\n%s\n%s",
-				test.func_name,
+				test.funcName,
 				cursor,
-				dumpBytes2("good", good_bytes, cursor),
-				dumpBytes2("test", test_bytes, cursor))
+				dumpBytes2("good", goodBytes, cursor),
+				dumpBytes2("test", testBytes, cursor))
 			break
 		}
 	}
@@ -152,15 +148,15 @@ func TestEnmarshalVarbind(t *testing.T) {
 	slog = log.New(ioutil.Discard, "", 0)
 
 	for _, test := range testsEnmarshal {
-		for j, test2 := range test.vb_positions {
-			snmppdu := &SnmpPDU{test2.oid, test2.pdu_type, test2.pdu_value}
-			test_bytes, err := marshalVarbind(snmppdu)
+		for j, test2 := range test.vbPos {
+			snmppdu := &SnmpPDU{test2.oid, test2.pduType, test2.pduVal}
+			testBytes, err := marshalVarbind(snmppdu)
 			if err != nil {
 				t.Errorf("#%s:%d:%s err returned: %v",
-					test.func_name, j, test2.oid, err)
+					test.funcName, j, test2.oid, err)
 			}
 
-			check_byte_equality(t, test, test_bytes, test2.start, test2.finish)
+			check_byte_equality(t, test, testBytes, test2.start, test2.finish)
 		}
 	}
 }
@@ -171,20 +167,20 @@ func TestEnmarshalVBL(t *testing.T) {
 	slog = log.New(ioutil.Discard, "", 0)
 
 	for _, test := range testsEnmarshal {
-		x := &SnmpPacket{
+		x := &SNMPPacket{
 			Community: test.community,
 			Version:   test.version,
 			RequestID: test.requestid,
 		}
 
-		pdus := vb_pos_pdus(test)
+		data := vbPosPDUs(test)
 
-		test_bytes, err := x.marshalVBL(pdus)
+		testBytes, err := x.marshalVBL(data)
 		if err != nil {
-			t.Errorf("#%s: marshalVBL() err returned: %v", test.func_name, err)
+			t.Errorf("#%s: marshalVBL() err returned: %v", test.funcName, err)
 		}
 
-		check_byte_equality(t, test, test_bytes, test.vbl_start, test.finish)
+		checkByteEq(t, test, testBytes, test.vblStart, test.finish)
 	}
 }
 
@@ -194,20 +190,20 @@ func TestEnmarshalPDU(t *testing.T) {
 	slog = log.New(ioutil.Discard, "", 0)
 
 	for _, test := range testsEnmarshal {
-		x := &SnmpPacket{
+		x := &SNMPPacket{
 			Community: test.community,
 			Version:   test.version,
-			PDUType:   test.request_type,
-			RequestID: test.requestid,
+			PDUType:   test.requestType,
+			RequestID: test.requestID,
 		}
-		pdus := vb_pos_pdus(test)
+		data := vbPosPDUs(test)
 
-		test_bytes, err := x.marshalPDU(pdus, test.requestid)
+		testBytes, err := x.marshalPDU(data, test.requestID)
 		if err != nil {
-			t.Errorf("#%s: marshalPDU() err returned: %v", test.func_name, err)
+			t.Errorf("#%s: marshalPDU() err returned: %v", test.funcName, err)
 		}
 
-		check_byte_equality(t, test, test_bytes, test.pdu_start, test.finish)
+		check_byte_equality(t, test, testBytes, test.pdu_start, test.finish)
 	}
 }
 
@@ -217,20 +213,19 @@ func TestEnmarshalMsg(t *testing.T) {
 	slog = log.New(ioutil.Discard, "", 0)
 
 	for _, test := range testsEnmarshal {
-		x := &SnmpPacket{
+		x := &SNMPPacket{
 			Community: test.community,
 			Version:   test.version,
-			PDUType:   test.request_type,
-			RequestID: test.requestid,
+			PDUType:   test.requestType,
+			RequestID: test.requestID,
 		}
-		pdus := vb_pos_pdus(test)
+		data := vbPosPdus(test)
 
-		test_bytes, err := x.marshalMsg(pdus,
-			test.request_type, test.requestid)
+		testBytes, err := x.marshalMsg(data, test.requestType, test.requestID)
 		if err != nil {
-			t.Errorf("#%s: marshal() err returned: %v", test.func_name, err)
+			t.Errorf("#%s: marshal() err returned: %v", test.funcName, err)
 		}
-		check_byte_equality(t, test, test_bytes, 0, test.finish)
+		check_byte_equality(t, test, testBytes, 0, test.finish)
 	}
 }
 
@@ -238,17 +233,17 @@ func TestEnmarshalMsg(t *testing.T) {
 
 var testsUnmarshal = []struct {
 	in  func() []byte
-	out *SnmpPacket
+	out *SNMPPacket
 }{
-	{kyocera_response_bytes,
-		&SnmpPacket{
+	{kyoceraResponseBytes,
+		&SNMPPacket{
 			Version:    Version2c,
 			Community:  "public",
 			PDUType:    GetResponse,
 			RequestID:  1066889284,
 			Error:      0,
 			ErrorIndex: 0,
-			Variables: []SnmpPDU{
+			Variables: []SNMPData{
 				{
 					Name:  "1.3.6.1.2.1.1.7.0",
 					Type:  Integer,
@@ -292,7 +287,7 @@ var testsUnmarshal = []struct {
 			},
 		},
 	},
-	{cisco_response_bytes,
+	{ciscoResponseBytes,
 		&SnmpPacket{
 			Version:    Version2c,
 			Community:  "public",
@@ -300,7 +295,7 @@ var testsUnmarshal = []struct {
 			RequestID:  4876669,
 			Error:      0,
 			ErrorIndex: 0,
-			Variables: []SnmpPDU{
+			Variables: []SNMPData{
 				{
 					Name:  "1.3.6.1.2.1.1.7.0",
 					Type:  Integer,
@@ -602,7 +597,7 @@ Simple Network Management Protocol
         1.3.6.1.2.1.1.3.0: 318870100
 */
 
-func kyocera_response_bytes() []byte {
+func kyoceraRespBytes() []byte {
 	return []byte{
 		0x30, 0x81, 0xc2, 0x02, 0x01, 0x01, 0x04, 0x06, 0x70, 0x75, 0x62, 0x6c,
 		0x69, 0x63, 0xa2, 0x81, 0xb4, 0x02, 0x04, 0x3f, 0x97, 0x70, 0x44, 0x02,
@@ -640,7 +635,7 @@ cisco_response_bytes corresponds to the response section of this snmpget:
 .1.3.6.1.2.1.1.2.0 = OID: .1.3.6.1.4.1.9.1.1166
 */
 
-func cisco_response_bytes() []byte {
+func ciscoRespBytes() []byte {
 	return []byte{
 		0x30, 0x81,
 		0xf1, 0x02, 0x01, 0x01, 0x04, 0x06, 0x70, 0x75, 0x62, 0x6c, 0x69, 0x63,
@@ -681,7 +676,7 @@ snmpget -On -v2c -c public 192.168.1.10 1.3.6.1.2.1.1.7.0 1.3.6.1.2.1.2.2.1.10.1
 .1.3.6.1.2.1.1.3.0 = Timeticks: (120394900) 13 days, 22:25:49.00
 */
 
-func kyocera_request_bytes() []byte {
+func kyoceraReqBytes() []byte {
 	return []byte{
 		0x30, 0x81,
 		0x9e, 0x02, 0x01, 0x01, 0x04, 0x06, 0x70, 0x75, 0x62, 0x6c, 0x69, 0x63,
@@ -735,7 +730,7 @@ Simple Network Management Protocol
           Value (Integer32): 1
 */
 
-func port_on_outgoing1() []byte {
+func portOnOutgoing1() []byte {
 	return []byte{
 		0x30, 0x35, 0x02, 0x01, 0x00, 0x04, 0x0a, 0x70, 0x72, 0x69, 0x76, 0x61,
 		0x74, 0x65, 0x6c, 0x61, 0x62, 0xa3, 0x24, 0x02, 0x04, 0x1f, 0x67, 0xc8,
@@ -745,7 +740,7 @@ func port_on_outgoing1() []byte {
 	}
 }
 
-func port_on_incoming1() []byte {
+func portOnIncoming1() []byte {
 	return []byte{
 		0x30, 0x82, 0x00, 0x35, 0x02, 0x01, 0x00, 0x04, 0x0a, 0x70, 0x72, 0x69,
 		0x76, 0x61, 0x74, 0x65, 0x6c, 0x61, 0x62, 0xa2, 0x24, 0x02, 0x04, 0x1f,
@@ -787,7 +782,7 @@ Simple Network Management Protocol
           Value (Integer32): 2
 */
 
-func port_off_outgoing1() []byte {
+func portOffOutgoing1() []byte {
 	return []byte{
 		0x30, 0x35, 0x02, 0x01, 0x00, 0x04, 0x0a, 0x70, 0x72, 0x69, 0x76, 0x61,
 		0x74, 0x65, 0x6c, 0x61, 0x62, 0xa3, 0x24, 0x02, 0x04, 0x6c, 0xd7, 0xa8,
@@ -797,7 +792,7 @@ func port_off_outgoing1() []byte {
 	}
 }
 
-func port_off_incoming1() []byte {
+func portOffIncoming1() []byte {
 	return []byte{
 		0x30, 0x82, 0x00, 0x35, 0x02, 0x01, 0x00, 0x04, 0x0a, 0x70, 0x72, 0x69,
 		0x76, 0x61, 0x74, 0x65, 0x6c, 0x61, 0x62, 0xa2, 0x24, 0x02, 0x04, 0x6c,
@@ -807,7 +802,7 @@ func port_off_incoming1() []byte {
 	}
 }
 
-func cisco_getnext_response_bytes() []byte {
+func ciscoGetNextRespBytes() []byte {
 	return []byte{
 		0x30, 0x81,
 		0xc8, 0x02, 0x01, 0x01, 0x04, 0x06, 0x70, 0x75, 0x62, 0x6c, 0x69, 0x63,
@@ -830,7 +825,7 @@ func cisco_getnext_response_bytes() []byte {
 	}
 }
 
-func cisco_getnext_request_bytes() []byte {
+func ciscoGetNextReqBytes() []byte {
 	return []byte{
 		0x30, 0x7e,
 		0x02, 0x01, 0x01, 0x04, 0x06, 0x70, 0x75, 0x62, 0x6c, 0x69, 0x63, 0xa1,
@@ -862,7 +857,7 @@ iso.3.6.1.2.1.2.1.0 = INTEGER: 3
 iso.3.6.1.2.1.2.2.1.1.1 = INTEGER: 1
 
 */
-func cisco_getbulk_request_bytes() []byte {
+func ciscoGetBulkReqBytes() []byte {
 	return []byte{
 		0x30, 0x2b,
 		0x02, 0x01, 0x01, 0x04, 0x06, 0x70, 0x75, 0x62, 0x6c, 0x69, 0x63, 0xa5,
@@ -872,7 +867,7 @@ func cisco_getbulk_request_bytes() []byte {
 	}
 }
 
-func cisco_getbulk_response_bytes() []byte {
+func ciscoGetBulkRespBytes() []byte {
 	return []byte{
 		0x30, 0x81,
 		0xc5, 0x02, 0x01, 0x01, 0x04, 0x06, 0x70, 0x75, 0x62, 0x6c, 0x69, 0x63,
