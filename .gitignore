@@ -3,22 +3,19 @@
 *.a
 *.so
 
-# Folders
+#Folders
 _obj
 _test
 
-# Architecture specific extensions/prefixes
+#Architecture specific extensions/prefixes
 *.[568vq]
 [568vq].out
-
 *.cgo1.go
 *.cgo2.c
 _cgo_defun.c
 _cgo_gotypes.go
 _cgo_export.*
-
 _testmain.go
-
 *.exe
 
 # Editor Files
@@ -26,16 +23,18 @@ _testmain.go
 *.orig
 
 # Mac OS X crap
-.DS_Store# On branch master
+.DS_Store
 
-# Verax testing symlinks
+#On branch master
+
+#Verax testing symlinks
 device
 
-# test coverage outputs
+#test coverage outputs
 coverage.json
 gosnmp.html
 
-# profiling outputs
+#profiling outputs
 cpu.out
 mem.out
 gosnmp.test
