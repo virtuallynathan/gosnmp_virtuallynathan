@@ -176,10 +176,6 @@ func (x *GoSNMP) GetBulk(oids []string, nonRepeaters uint8, maxReps uint8) (resu
 	return x.send(data, packetOut)
 }
 
-//
-// Public Functions (helpers) - in alphabetical order
-//
-
 // Partition - returns true when dividing a slice into
 // partition_size lengths, including last partition which may be smaller
 // than partition_size. This is useful when you have a large array of OIDs

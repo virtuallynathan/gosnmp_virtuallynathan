@@ -22,7 +22,7 @@ func main() {
 	defer g.Default.Conn.Close()
 
 	oids := []string{"1.3.6.1.2.1.1.4.0", "1.3.6.1.2.1.1.7.0"}
-	result, err2 := g.Default.Get(oids) // Get() accepts up to g.MAX_OIDS
+	result, err2 := g.Default.Get(oids) // Get() accepts up to g.MaxOids
 	if err2 != nil {
 		log.Fatalf("Get() err: %v", err2)
 	}
