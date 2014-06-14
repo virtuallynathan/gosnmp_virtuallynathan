@@ -7,10 +7,12 @@ supports GetRequest, GetNext, GetBulk, and SetRequest (beta, see below).
 About
 -----
 
-**soniah/gosmp** is based on **alouca/gosnmp** - many thanks to Andreas
+**virtuallynathan/gosnmp** is based on **soniah/gosmp**,
+which is based on **alouca/gosnmp** - many thanks to Andreas
 Louca for starting the project. Thanks also to the following who have
 contributed:
 
+* Sonia Hamilton - many fixes and changes
 * Jacob Dubinsky - all of GetNext and GetBulk
 * Jon Auer - fixes
 
@@ -26,7 +28,8 @@ GoSNMP has the following public functions:
 * **ToBigInt** - treat returned values as `*big.Int`
 * **Partition** - facilitates dividing up large slices of OIDs
 
-**soniah/gosmp** has diverged from **alouca/gosnmp** - your existing
+**virtuallynathan/gosnmp** has diverged from **soniah/gosnmp*,
+which has has diverged from **alouca/gosnmp** - your existing
 code will require slight modification:
 
 * the **Get** function has a different method signature
@@ -36,25 +39,25 @@ code will require slight modification:
   logger if it conforms to the simple interface (Print and Printf).
   Otherwise debugging will be discarded (/dev/null).
 
-GoSNMP is still under development, therefore API's may change and bugs
+gosnmp is still under development, therefore API's may change and bugs
 will be squashed. Test Driven Development is used - you can help by
 sending packet captures (see Packet Captures below). There may be more
 than one branch on github. **master** is safe to pull from, other
 branches unsafe as history may be rewritten.
 
-Sonia Hamilton, sonia@snowfrog.net, http://blog.snowfrog.net.
+Nathan Owens, virtuallynathan@gmail.com
 
 Installation
 ------------
 
 Install via **go get**:
 
-    go get github.com/soniah/gosnmp
+    go get github.com/virtuallynathan/gosnmp
 
 Documentation
 -------------
 
-See http://godoc.org/github.com/soniah/gosnmp or your local go doc
+See http://godoc.org/github.com/virtuallynathan/gosnmp or your local go doc
 server for full documentation, as well as the examples.
 
     cd $GOPATH
@@ -211,7 +214,7 @@ To check test coverage:
 
     go get github.com/axw/gocov/gocov
     go get github.com/matm/gocov-html
-    gocov test github.com/soniah/gosnmp | gocov-html > gosnmp.html && firefox gosnmp.html &
+    gocov test github.com/virtuallynathan/gosnmp | gocov-html > gosnmp.html && firefox gosnmp.html &
 
 [1] http://www.veraxsystems.com/en/products/snmpsimulator
 
