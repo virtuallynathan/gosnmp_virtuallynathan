@@ -1,4 +1,4 @@
-// Copyright 2013 Sonia Hamilton. All rights reserved.  Use of this
+// Copyright 2013 Sonia Hamilton, 2014 Nathan Owens. All rights reserved.  Use of this
 // source code is governed by a BSD-style license that can be found in
 // the LICENSE file.
 
@@ -12,10 +12,6 @@ import (
 
 var _ = fmt.Sprintf("dummy") // dummy
 
-// Tests in alphabetical order of function being tested
-
-// -----------------------------------------------------------------------------
-
 var testsMarshalLength = []struct {
 	length   int
 	expected []byte
@@ -26,24 +22,22 @@ var testsMarshalLength = []struct {
 
 func TestMarshalLength(t *testing.T) {
 	for i, test := range testsMarshalLength {
-		test_bytes, err := marshalLength(test.length)
+		testBytes, err := marshalLength(test.length)
 		if err != nil {
 			t.Errorf("%d: length %d got err %v", i, test.length, err)
 		}
-		if !reflect.DeepEqual(test_bytes, test.expected) {
+		if !reflect.DeepEqual(testBytes, test.expected) {
 			t.Errorf("%d: length %d got |%x| expected |%x|",
 				i, test.length, test_bytes, test.expected)
 		}
 	}
 }
 
-// -----------------------------------------------------------------------------
-
 var testsPartition = []struct {
-	current_position int
-	partition_size   int
-	slice_length     int
-	ok               bool
+	curPos        int
+	partitionSize int
+	sliceLen      int
+	ok            bool
 }{
 	{-1, 3, 8, false}, // test out of range
 	{8, 3, 8, false},  // test out of range
@@ -64,17 +58,15 @@ var testsPartition = []struct {
 
 func TestPartition(t *testing.T) {
 	for i, test := range testsPartition {
-		ok := Partition(test.current_position, test.partition_size, test.slice_length)
+		ok := Partition(test.curPos, test.partitionSize, test.sliceLen)
 		if ok != test.ok {
 			t.Errorf("#%d: Bad result: %v (expected %v)", i, ok, test.ok)
 		}
 	}
 }
 
-// ---------------------------------------------------------------------
-
-var testsSnmpVersionString = []struct {
-	in  SnmpVersion
+var testsSNMPVersionString = []struct {
+	in  SNMPVersion
 	out string
 }{
 	{Version1, "1"},
@@ -82,12 +74,10 @@ var testsSnmpVersionString = []struct {
 }
 
 func TestSnmpVersionString(t *testing.T) {
-	for i, test := range testsSnmpVersionString {
+	for i, test := range testsSNMPVersionString {
 		result := test.in.String()
 		if result != test.out {
 			t.Errorf("#%d, got %v expected %v", i, result, test.out)
 		}
 	}
 }
-
-// ---------------------------------------------------------------------
