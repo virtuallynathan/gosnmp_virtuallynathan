@@ -18,21 +18,23 @@ import (
 type SNMPVersion uint8
 
 const (
-	Version1  SNMPVersion = 0x0
+	//Version1 defines the SNMPv1 code
+	Version1 SNMPVersion = 0x0
+	//Version2c devinces the SNMPv2c code
 	Version2c SNMPVersion = 0x1
 )
 
 //SNMPPacket contains all of the info required for an SNMP PAcket
 type SNMPPacket struct {
-	Version        SNMPVersion
-	Community      string
-	PDUType        PDUType
-	RequestID      uint32
-	Error          uint8
-	ErrorIndex     uint8
-	NonRepeaters   uint8
-	MaxRepetitions uint8
-	Variables      []SNMPData
+	Version      SNMPVersion
+	Community    string
+	PDUType      PDUType
+	RequestID    uint32
+	Error        uint8
+	ErrorIndex   uint8
+	NonRepeaters uint8
+	MaxReps      uint8
+	Variables    []SNMPData
 }
 
 //Variable contains the response???? TODO: Figure out what the heck this means
@@ -94,7 +96,7 @@ func (x *GoSNMP) send(pdus []SNMPData, packetOut *SNMPPacket) (result *SNMPPacke
 	slog = x.Logger // global variable for debug logging
 
 	// RequestID is only used during tests, therefore use an arbitrary uint32 ie 1
-	fBuf, err := packet_out.marshalMsg(pdus, packet_out.PDUType, 1)
+	fBuf, err := packetOut.marshalMsg(pdus, packetOut.PDUType, 1)
 	if err != nil {
 		return nil, fmt.Errorf("marshal: %v", err)
 	}
@@ -202,7 +204,7 @@ func (packet *SNMPPacket) marshalPDU(data []SNMPData, requestID uint32) ([]byte,
 func (packet *SNMPPacket) marshalVBL(data []SNMPData) ([]byte, error) {
 
 	variableBuf := new(bytes.Buffer)
-	for _, pdu := range pdus {
+	for _, pdu := range data {
 		vb, err := marshalVarbind(&pdu)
 		if err != nil {
 			return nil, err
@@ -233,7 +235,7 @@ func marshalVarbind(data *SNMPData) ([]byte, error) {
 	tmpBuf := new(bytes.Buffer)
 
 	// Marshal the PDU type into the appropriate BER
-	switch pdu.Type {
+	switch data.Type {
 	case Null:
 		pduBuf.Write([]byte{byte(Sequence), byte(len(oid) + 4)})
 		pduBuf.Write([]byte{byte(ObjectIdentifier), byte(len(oid))})
@@ -244,15 +246,15 @@ func marshalVarbind(data *SNMPData) ([]byte, error) {
 		tmpBuf.Write([]byte{byte(ObjectIdentifier), byte(len(oid))})
 		tmpBuf.Write(oid)
 		// Integer
-		intBytes := []byte{byte(pdu.Value.(int))}
+		intBytes := []byte{byte(data.Value.(int))}
 		tmpBuf.Write([]byte{byte(Integer), byte(len(intBytes))})
-		tmpBuf.Write(int_bytes)
+		tmpBuf.Write(intBytes)
 		// Sequence, length of oid + integer, then oid/integer data
 		pduBuf.WriteByte(byte(Sequence))
-		pduBuf.WriteByte(byte(len(oid) + len(int_bytes) + 4))
+		pduBuf.WriteByte(byte(len(oid) + len(intBytes) + 4))
 		pduBuf.Write(tmpBuf.Bytes())
 	default:
-		return nil, fmt.Errorf("Unable to marshal PDU: unknown BER type %d", pdu.Type)
+		return nil, fmt.Errorf("Unable to marshal PDU: unknown BER type %d", data.Type)
 	}
 
 	return pduBuf.Bytes(), nil
@@ -261,7 +263,7 @@ func marshalVarbind(data *SNMPData) ([]byte, error) {
 // -- Unmarshalling Logic ------------------------------------------------------
 
 func unmarshal(packet []byte) (*SNMPPacket, error) {
-	response := new(SnmpPacket)
+	response := new(SNMPPacket)
 	response.Variables = make([]SNMPData, 0, 5)
 
 	// Start parsing the packet
@@ -286,7 +288,7 @@ func unmarshal(packet []byte) (*SNMPPacket, error) {
 
 	cursor += count
 	if version, ok := rawVersion.(int); ok {
-		response.Version = SnmpVersion(version)
+		response.Version = SNMPVersion(version)
 		slog.Printf("Parsed version %d", version)
 	}
 
@@ -352,8 +354,8 @@ func unmarshalResponse(packet []byte, response *SNMPPacket, length int, requestT
 			return nil, fmt.Errorf("Error parsing SNMP packet max repetitions: %s", err.Error())
 		}
 		cursor += count
-		if maxReps, ok := rawMaxReps.(int); ok {
-			response.maxReps = uint8(maxReps)
+		if MaxReps, ok := rawMaxReps.(int); ok {
+			response.MaxReps = uint8(MaxReps)
 		}
 	} else {
 		// Parse Error-Status
@@ -428,7 +430,7 @@ func unmarshalVBL(packet []byte, response *SNMPPacket, length int) (*SNMPPacket,
 		v, err := decodeValue(packet[cursor:], "value")
 		valLen, _ := parseLength(packet[cursor:])
 		cursor += valLen
-		response.Variables = append(response.Variables, SnmpPDU{oidToString(oid), v.Type, v.Value})
+		response.Variables = append(response.Variables, SNMPData{oidToString(oid), v.Type, v.Value})
 	}
 	return response, nil
 }

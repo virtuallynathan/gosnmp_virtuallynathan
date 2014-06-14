@@ -21,7 +21,7 @@ const MaxOids = 60
 
 //GoSNMP is the struct containing info about an SNMP connection
 type GoSNMP struct {
-	Target    string        //Target is an ipv4 address
+	Target    string        //Target is an IP address
 	Port      uint16        //Port is a udp port
 	Community string        //Community is an SNMP Community string
 	Version   SNMPVersion   //Version is an SNMP Version
