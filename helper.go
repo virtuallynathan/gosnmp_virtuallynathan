@@ -64,19 +64,19 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 		retVal.Type = ObjectIdentifier
 		retVal.Value = oidToString(oid)
 	case IPAddress: // 0x40
-		slog.Print("decodeValue: type is IpAddress")
+		slog.Print("decodeValue: type is IPAddress")
 		//TODO: IPv6 Support
 		if len(data) < 6 {
 			return nil, fmt.Errorf("not enough data for ipaddress: % x", data)
 		} else if data[1] != 4 {
 			return nil, fmt.Errorf("got ipaddress len %d, expected 4", data[1])
 		}
-		retVal.Type = IpAddress
+		retVal.Type = IPAddress
 		var ipv4 string
 		for i := 2; i < 6; i++ {
-			ipv4 += fmt.Sprintf(".%d", data[i])
+			IPv4 += fmt.Sprintf(".%d", data[i])
 		}
-		retVal.Value = ipv4[1:]
+		retVal.Value = IPv4[1:]
 	case Counter32: // 0x41. unsigned
 		slog.Print("decodeValue: type is Counter32")
 		length, cursor := parseLength(data)

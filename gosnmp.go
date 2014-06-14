@@ -1,4 +1,4 @@
-// Copyright 2012 Andreas Louca, 2013 Sonia Hamilton. All rights reserved.  Use
+// Copyright 2012 Andreas Louca, 2013 Sonia Hamilton, 2014 Nathan Owens. All rights reserved.  Use
 // of this source code is governed by a BSD-style license that can be found in
 // the LICENSE file.
 
@@ -24,7 +24,7 @@ type GoSNMP struct {
 	Target    string        //Target is an ipv4 address
 	Port      uint16        //Port is a udp port
 	Community string        //Community is an SNMP Community string
-	Version   SnmpVersion   //Version is an SNMP Version
+	Version   SNMPVersion   //Version is an SNMP Version
 	Timeout   time.Duration //Timeout is the timeout for the SNMP Query
 	Conn      net.Conn      //Conn is net connection to use, typically establised using GoSNMP.Connect()
 	// Logger is the GoSNMP.Logger to use for debugging. If nil, debugging
@@ -52,7 +52,6 @@ type SNMPData struct {
 type ASN1BER byte
 
 const (
-	//EndOfContents is an ASN1BER code for the end of a PDU
 	EndOfContents     ASN1BER = 0x00
 	Boolean                   = 0x01
 	Integer                   = 0x02
@@ -153,11 +152,11 @@ func (x *GoSNMP) GetNext(oids []string) (result *SnmpPacket, err error) {
 }
 
 //GetBulk send an SNMP GETBULK request
-func (x *GoSNMP) GetBulk(oids []string, non_repeaters uint8, max_repetitions uint8) (result *SnmpPacket, err error) {
-	oid_count := len(oids)
-	if oid_count > MAX_OIDS {
+func (x *GoSNMP) GetBulk(oids []string, nonRepeaters uint8, maxReps uint8) (result *SnmpPacket, err error) {
+	oidCount := len(oids)
+	if oidCount > MaxOids {
 		return nil, fmt.Errorf("oid count (%d) is greater than MAX_OIDS (%d)",
-			oid_count, MAX_OIDS)
+			oidCount, MaxOids)
 	}
 
 	// convert oids slice to pdu slice
@@ -167,14 +166,14 @@ func (x *GoSNMP) GetBulk(oids []string, non_repeaters uint8, max_repetitions uin
 	}
 
 	// Marshal and send the packet
-	packet_out := &SnmpPacket{
+	packetOut := &SNMPPacket{
 		Community:      x.Community,
 		PDUType:        GetBulkRequest,
 		Version:        x.Version,
-		NonRepeaters:   non_repeaters,
-		MaxRepetitions: max_repetitions,
+		NonRepeaters:   nonRepeaters,
+		MaxRepetitions: maxReps,
 	}
-	return x.send(pdus, packet_out)
+	return x.send(pdus, packetOut)
 }
 
 //
@@ -193,17 +192,17 @@ func (x *GoSNMP) GetBulk(oids []string, non_repeaters uint8, max_repetitions uin
 // 0  1  2  3  4  5  6  7
 //       T        T     T
 //
-func Partition(current_position, partition_size, slice_length int) bool {
-	if current_position < 0 || current_position >= slice_length {
+func Partition(curPos, partitionSize, sliceLen int) bool {
+	if curPos < 0 || curPos >= slice_length {
 		return false
 	}
-	if partition_size == 1 { // redundant, but an obvious optimisation
+	if partitionSize == 1 { // redundant, but an obvious optimisation
 		return true
 	}
-	if current_position%partition_size == partition_size-1 {
+	if curPos%partitionSize == partitionSize-1 {
 		return true
 	}
-	if current_position == slice_length-1 {
+	if curPos == sliceLen-1 {
 		return true
 	}
 	return false
