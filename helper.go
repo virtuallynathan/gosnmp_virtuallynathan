@@ -23,12 +23,12 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 	dumpBytes1(data, fmt.Sprintf("decodeValue: %s", msg), 16)
 	retVal = new(Variable)
 
-	switch ASN1BER(data[0]) {
+	switch Asn1BER(data[0]) {
 
 	case Integer: // 0x02. signed
 		slog.Print("decodeValue: type is Integer")
 		length, cursor := parseLength(data)
-		if ret, err := parseInt(data[cursor:length]); err != nil {
+		if _, err := parseInt(data[cursor:length]); err != nil {
 			slog.Printf("%v:", err)
 			return retVal, fmt.Errorf("bytes: % x err: %v", data, err)
 		}
@@ -418,7 +418,7 @@ func parseObjectIdentifier(bytes []byte) (s []int, err error) {
 func parseRawField(data []byte, msg string) (interface{}, int, error) {
 	dumpBytes1(data, fmt.Sprintf("parseRawField: %s", msg), 16)
 
-	switch ASN1BER(data[0]) {
+	switch Asn1BER(data[0]) {
 	case Integer:
 		length := int(data[1])
 		if length == 1 {

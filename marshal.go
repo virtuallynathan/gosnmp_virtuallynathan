@@ -40,7 +40,7 @@ type SNMPPacket struct {
 //Variable contains the response???? TODO: Figure out what the heck this means
 type Variable struct {
 	Name  []int
-	Type  ASN1BER
+	Type  Asn1BER
 	Value interface{}
 }
 
@@ -205,7 +205,7 @@ func (packet *SNMPPacket) marshalVBL(data []SNMPData) ([]byte, error) {
 
 	variableBuf := new(bytes.Buffer)
 	for _, pdu := range data {
-		vb, err := marshalVarbind(&pdu)
+		vb, err := MarshalVarBind(&pdu)
 		if err != nil {
 			return nil, err
 		}
@@ -226,7 +226,7 @@ func (packet *SNMPPacket) marshalVBL(data []SNMPData) ([]byte, error) {
 }
 
 // marshal a varbind
-func marshalVarbind(data *SNMPData) ([]byte, error) {
+func MarshalVarBind(data *SNMPData) ([]byte, error) {
 	oid, err := marshalOID(data.Name)
 	if err != nil {
 		return nil, err

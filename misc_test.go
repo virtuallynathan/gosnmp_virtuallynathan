@@ -28,7 +28,7 @@ func TestMarshalLength(t *testing.T) {
 		}
 		if !reflect.DeepEqual(testBytes, test.expected) {
 			t.Errorf("%d: length %d got |%x| expected |%x|",
-				i, test.length, test_bytes, test.expected)
+				i, test.length, testBytes, test.expected)
 		}
 	}
 }

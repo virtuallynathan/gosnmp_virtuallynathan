@@ -28,7 +28,7 @@ type testsEnmarshalVarBindPos struct {
 	// used to find the start and finish values...
 	start   int
 	finish  int
-	pduType ASN1BER
+	pduType Asn1BER
 	pduVal  interface{}
 }
 
@@ -57,7 +57,7 @@ var testsEnmarshal = []testsEnmarshalT{
 		0x0e, // pdu start
 		0x1d, // vbl start
 		0xa0, // finish
-		[]testsEnmarshalVarbindPosition{
+		[]testsEnmarshalVarBindPos{
 			{"1.3.6.1.2.1.1.7.0", 0x20, 0x2d, Null, nil},
 			{"1.3.6.1.2.1.2.2.1.10.1", 0x2e, 0x3d, Null, nil},
 			{"1.3.6.1.2.1.2.2.1.5.1", 0x3e, 0x4d, Null, nil},
@@ -78,7 +78,7 @@ var testsEnmarshal = []testsEnmarshalT{
 		0x11, // pdu start
 		0x1f, // vbl start
 		0x36, // finish
-		[]testsEnmarshalVarbindPosition{
+		[]testsEnmarshalVarBindPos{
 			{"1.3.6.1.4.1.318.1.1.4.4.2.1.3.5", 0x21, 0x36, Integer, 1},
 		},
 	},
@@ -92,7 +92,7 @@ var testsEnmarshal = []testsEnmarshalT{
 		0x11, // pdu start
 		0x1f, // vbl start
 		0x36, // finish
-		[]testsEnmarshalVarBindPosition{
+		[]testsEnmarshalVarBindPos{
 			{"1.3.6.1.4.1.318.1.1.4.4.2.1.3.5", 0x21, 0x36, Integer, 2},
 		},
 	},
@@ -100,11 +100,11 @@ var testsEnmarshal = []testsEnmarshalT{
 
 // helpers for Enmarshal tests
 
-// vb_pos_pdus returns a slice of oids in the given test
+// vbPosPDUs returns a slice of oids in the given test
 func vbPosPDUs(test testsEnmarshalT) (data []SNMPData) {
 	for _, vbp := range test.vbPos {
-		data := SNMPData{vbp.oid, vbp.pduType, vbp.pduVal}
-		pdus = append(pdus, data)
+		pdu := SNMPData{vbp.oid, vbp.pduType, vbp.pduVal}
+		data = append(data, pdu)
 	}
 	return
 }
@@ -140,7 +140,7 @@ func TestEnmarshalVarBind(t *testing.T) {
 	for _, test := range testsEnmarshal {
 		for j, test2 := range test.vbPos {
 			snmppdu := &SNMPData{test2.oid, test2.pduType, test2.pduVal}
-			testBytes, err := marshalVarBind(snmppdu)
+			testBytes, err := MarshalVarBind(snmppdu)
 			if err != nil {
 				t.Errorf("#%s:%d:%s err returned: %v",
 					test.funcName, j, test2.oid, err)
@@ -191,7 +191,7 @@ func TestEnmarshalPDU(t *testing.T) {
 			t.Errorf("#%s: marshalPDU() err returned: %v", test.funcName, err)
 		}
 
-		checkByteEq(t, test, testBytes, test.pdu_start, test.finish)
+		checkByteEq(t, test, testBytes, test.pduStart, test.finish)
 	}
 }
 
@@ -206,7 +206,7 @@ func TestEnmarshalMsg(t *testing.T) {
 			PDUType:   test.requestType,
 			RequestID: test.requestID,
 		}
-		data := vbPosPdus(test)
+		data := vbPosPDUs(test)
 
 		testBytes, err := x.marshalMsg(data, test.requestType, test.requestID)
 		if err != nil {
@@ -222,7 +222,7 @@ var testsUnmarshal = []struct {
 	in  func() []byte
 	out *SNMPPacket
 }{
-	{kyoceraResponseBytes,
+	{kyoceraRespBytes,
 		&SNMPPacket{
 			Version:    Version2c,
 			Community:  "public",
@@ -258,7 +258,7 @@ var testsUnmarshal = []struct {
 				},
 				{
 					Name:  "1.3.6.1.2.1.4.21.1.1.127.0.0.1",
-					Type:  IpAddress,
+					Type:  IPAddress,
 					Value: "127.0.0.1",
 				},
 				{
@@ -274,8 +274,8 @@ var testsUnmarshal = []struct {
 			},
 		},
 	},
-	{ciscoResponseBytes,
-		&SnmpPacket{
+	{ciscoRespBytes,
+		&SNMPPacket{
 			Version:    Version2c,
 			Community:  "public",
 			PDUType:    GetResponse,
@@ -337,7 +337,7 @@ var testsUnmarshal = []struct {
 		},
 	},
 	{portOnIncoming1,
-		&SnmpPacket{
+		&SNMPPacket{
 			Version:    Version1,
 			Community:  "privatelab",
 			PDUType:    GetResponse,
@@ -354,7 +354,7 @@ var testsUnmarshal = []struct {
 		},
 	},
 	{portOffIncoming1,
-		&SnmpPacket{
+		&SNMPPacket{
 			Version:    Version1,
 			Community:  "privatelab",
 			PDUType:    GetResponse,
@@ -371,7 +371,7 @@ var testsUnmarshal = []struct {
 		},
 	},
 	{ciscoGetNextRespBytes,
-		&SnmpPacket{
+		&SNMPPacket{
 			Version:    Version2c,
 			Community:  "public",
 			PDUType:    GetResponse,
@@ -413,13 +413,13 @@ var testsUnmarshal = []struct {
 		},
 	},
 	{ciscoGetBulkRespBytes,
-		&SnmpPacket{
+		&SNMPPacket{
 			Version:        Version2c,
 			Community:      "public",
 			PDUType:        GetResponse,
 			RequestID:      250000266,
 			NonRepeaters:   0,
-			MaxRepetitions: 10,
+			MaxReps: 10,
 			Variables: []SNMPData{
 				{
 					Name:  "1.3.6.1.2.1.1.9.1.4.1",
@@ -535,7 +535,7 @@ SANITY:
 				if vbval.Cmp(vbrval) != 0 {
 					t.Errorf("#%d:%d Value result: %v, test: %v", i, n, vbr.Value, vb.Value)
 				}
-			case OctetString, IpAddress, ObjectIdentifier:
+			case OctetString, IPAddress, ObjectIdentifier:
 				if vb.Value != vbr.Value {
 					t.Errorf("#%d:%d Value result: %v, test: %v", i, n, vbr.Value, vb.Value)
 				}

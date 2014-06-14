@@ -44,15 +44,15 @@ var Default = &GoSNMP{
 //SNMPData will be used when doing SNMP Set's
 type SNMPData struct {
 	Name  string      //Name is an oid in string format eg "1.3.6.1.4.9.27"
-	Type  ASN1BER     //The type of the value eg Integer
+	Type  Asn1BER     //The type of the value eg Integer
 	Value interface{} // The value to be set by the SNMP set
 }
 
 //ASN1BER is a typed byte containing for decoding SNMP
-type ASN1BER byte
+type Asn1BER byte
 
 const (
-	EndOfContents     ASN1BER = 0x00
+	EndOfContents     Asn1BER = 0x00
 	Boolean                   = 0x01
 	Integer                   = 0x02
 	BitString                 = 0x03
@@ -171,7 +171,7 @@ func (x *GoSNMP) GetBulk(oids []string, nonRepeaters uint8, maxReps uint8) (resu
 		PDUType:        GetBulkRequest,
 		Version:        x.Version,
 		NonRepeaters:   nonRepeaters,
-		MaxRepetitions: maxReps,
+		MaxReps: maxReps,
 	}
 	return x.send(data, packetOut)
 }

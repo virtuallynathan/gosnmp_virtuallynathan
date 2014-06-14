@@ -28,20 +28,20 @@ const PartitonSize = 3
 
 // reduce oidCount to speed up tests;
 // set to 1<<32 - 1 (MaxUint32) for everything
-const oidCount = 1<<16 - 1
+const OidCount = 1<<16 - 1
 
 func TestVeraxGet(t *testing.T) {
 	for i, test := range veraxDevices {
 		var err error
 
 		// load verax results
-		var vresults testResults
-		if vresults, err = ReadVeraxResults(test.path); err != nil {
+		var vResults testResults
+		if vResults, err = ReadVeraxResults(test.path); err != nil {
 			t.Errorf("#%d, |%s|: ReadVeraxResults error: |%s|", i, test.path, err)
 		}
 
 		// load gosnmp results
-		var gresults = make(testResults)
+		var gResults = make(testResults)
 
 		Default.Target = "127.0.0.1"
 		Default.Port = test.port
@@ -55,11 +55,11 @@ func TestVeraxGet(t *testing.T) {
 
 		var oids []string
 		i := 0
-		oidsCount := len(vresults)
-		for oid := range vresults {
+		oidsCount := len(vResults)
+		for oid := range vResults {
 			oids = append(oids, oid)
 			i++
-			if Partition(i, PartitionSize, oidsCount) {
+			if Partition(i, PartitonSize, oidsCount) {
 				if getResults, err := Default.Get(oids); err == nil {
 					for _, vb := range getResults.Variables {
 						gResults[vb.Name] = vb
@@ -73,9 +73,9 @@ func TestVeraxGet(t *testing.T) {
 		}
 
 		// compare results
-		for oid, vpdu := range vresults {
+		for oid, vPdu := range vResults {
 			vType := vPdu.Type
-			vTalue := vPdu.Value
+			vValue := vPdu.Value
 			gPdu := gResults[oid]
 			gType := gPdu.Type
 			gValue := gPdu.Value
@@ -90,7 +90,7 @@ func TestVeraxGet(t *testing.T) {
 			case Integer, Gauge32, Counter32, TimeTicks, Counter64:
 				vVal := ToBigInt(vValue)
 				gVal := ToBigInt(gValue)
-				if vval.Cmp(gVal) != 0 {
+				if vVal.Cmp(gVal) != 0 {
 					t.Errorf("vvalue |%v|%s| doesn't match gvalue |%v|%s| for type |%#x| oid |%s|",
 						vValue, vVal, gValue, gVal, vType, oid)
 				}
@@ -112,14 +112,14 @@ func TestVeraxGet(t *testing.T) {
 					// Verax mishandles 1.3.6.1.2.1.1.1.0 on Cisco device
 					t.Errorf("failed string comparison\nVVAL |%s|\nGVAL |%s|\ntype |%#x| oid |%s|", vVal, gVal, vType, oid)
 				}
-			case ObjectIdentifier, IpAddress:
+			case ObjectIdentifier, IPAddress:
 				var vVal, gVal string
 				var ok bool
 				if vVal, ok = vValue.(string); !ok {
 					t.Errorf("failed string assert vvalue |%v|", vVal)
-				} else if gval, ok = gvalue.(string); !ok {
+				} else if gVal, ok = gValue.(string); !ok {
 					t.Errorf("failed string assert gvalue |%v|", gVal)
-				} else if vval != gval {
+				} else if vVal != gVal {
 					t.Errorf("failed comparison\nVVAL |%s|\nGVAL |%s|\ntype |%#x| oid |%s|", vVal, gVal, vType, oid)
 				}
 			default:
@@ -135,7 +135,7 @@ func TestVeraxGetNext(t *testing.T) {
 	for i, test := range veraxDevices {
 		var err error
 
-		oidMap := getnext_expected(test.port)
+		oidMap := getNextExpected(test.port)
 
 		// load gosnmp results
 		var gResults = make(testResults)
@@ -168,7 +168,7 @@ func TestVeraxGetNext(t *testing.T) {
 
 			// compare results
 			i := 0
-			for oid, gpdu := range gresults {
+			for oid, gPdu := range gResults {
 				vPdu := SNMPPacket.Variables[i]
 				vType := vPdu.Type
 				vValue := vPdu.Value
@@ -195,13 +195,13 @@ func TestVeraxGetNext(t *testing.T) {
 					var ok bool
 					if vVal, ok = vValue.(string); !ok {
 						t.Errorf("failed string assert vvalue |%v|", vVal)
-					} else if gval, ok = gvalue.(string); !ok {
+					} else if gVal, ok = gValue.(string); !ok {
 						t.Errorf("failed string assert gvalue |%v|", gVal)
 
-					} else if strings.HasPrefix(vval, "2010-") {
+					} else if strings.HasPrefix(vVal, "2010-") {
 						// skip weird Verax encoded hex strings
 						continue
-					} else if strings.HasPrefix(vval, "2011-") {
+					} else if strings.HasPrefix(vVal, "2011-") {
 						// skip weird Verax encoded hex strings
 						continue
 					} else if vVal != gVal && oid != "1.3.6.1.2.1.1.1.0" {
@@ -233,7 +233,7 @@ func TestVeraxGetBulk(t *testing.T) {
 	for i, test := range veraxDevices {
 		var err error
 
-		oidMap := getbulk_expected(test.port)
+		oidMap := getBulkExpected(test.port)
 
 		// load gosnmp results
 		var gResults = make(testResults)
@@ -249,7 +249,7 @@ func TestVeraxGetBulk(t *testing.T) {
 		}
 
 		var oids []string
-		oidsCount := len(oid_map)
+		oidsCount := len(oidMap)
 		for oid, SNMPPacket := range oidMap {
 			oids = append(oids, oid)
 			if Partition(i, PartitonSize, oidsCount) {
@@ -271,7 +271,7 @@ func TestVeraxGetBulk(t *testing.T) {
 				vName := vPdu.Name
 				// doesn't always come back in order'
 				for i := 0; vName != gPdu.Name; i++ {
-					vPdu = SNMPPAcket.Variables[i]
+					vPdu = SNMPPacket.Variables[i]
 					vName = vPdu.Name
 				}
 				vType := vPdu.Type
@@ -302,10 +302,10 @@ func TestVeraxGetBulk(t *testing.T) {
 					} else if gVal, ok = gValue.(string); !ok {
 						t.Errorf("failed string assert gvalue |%v|", gVal)
 
-					} else if strings.HasPrefix(vval, "2010-") {
+					} else if strings.HasPrefix(vVal, "2010-") {
 						// skip weird Verax encoded hex strings
 						continue
-					} else if strings.HasPrefix(vval, "2011-") {
+					} else if strings.HasPrefix(vVal, "2011-") {
 						// skip weird Verax encoded hex strings
 						continue
 					} else if vVal != gVal && oid != "1.3.6.1.2.1.1.1.0" {
@@ -318,7 +318,7 @@ func TestVeraxGetBulk(t *testing.T) {
 					var ok bool
 					if vVal, ok = vValue.(string); !ok {
 						t.Errorf("failed string assert vvalue |%v|", vVal)
-					} else if gVal, ok = gvalue.(string); !ok {
+					} else if gVal, ok = gValue.(string); !ok {
 						t.Errorf("failed string assert gvalue |%v|", gVal)
 					} else if vVal != gVal {
 						t.Errorf("failed comparison\nVVAL |%s|\nGVAL |%s|\ntype |%#x| oid |%s|",
@@ -400,7 +400,7 @@ func getNextExpected(port uint16) map[string]*SNMPPacket {
 		}
 	case 162:
 		return map[string]*SNMPPacket{
-			"1.3.6.1.2.1.3.1.1.3.2.1.192.168.104.1": &SNMPData{
+			"1.3.6.1.2.1.3.1.1.3.2.1.192.168.104.1": &SNMPPacket{
 				Version:    Version2c,
 				Community:  "public",
 				PDUType:    GetResponse,
@@ -410,7 +410,7 @@ func getNextExpected(port uint16) map[string]*SNMPPacket {
 				Variables: []SNMPData{
 					{
 						Name:  "1.3.6.1.2.1.3.1.1.3.9.1.192.168.1.250",
-						Type:  IpAddress,
+						Type:  IPAddress,
 						Value: "192.168.1.250",
 					},
 				},
@@ -477,7 +477,7 @@ func getBulkExpected(port uint16) map[string]*SNMPPacket {
 				PDUType:        GetResponse,
 				RequestID:      0,
 				NonRepeaters:   0,
-				MaxRepetitions: 0,
+				MaxReps: 0,
 				Variables: []SNMPData{
 					{
 						Name:  "1.3.6.1.2.1.2.1.0",
@@ -540,7 +540,7 @@ func getBulkExpected(port uint16) map[string]*SNMPPacket {
 				PDUType:        GetResponse,
 				RequestID:      0,
 				NonRepeaters:   0,
-				MaxRepetitions: 0,
+			  MaxReps:  			0,
 				Variables: []SNMPData{
 					{
 						Name:  "1.3.6.1.2.1.2.1.0",
@@ -641,8 +641,8 @@ LINE:
 			}
 
 		case "STRING", "String":
-			oidval = strings.Trim(oidVal, `"`)
-			oidval = strings.Replace(oidVal, string(0x0d), "", -1)
+			oidVal = strings.Trim(oidVal, `"`)
+			oidVal = strings.Replace(oidVal, string(0x0d), "", -1)
 			pdu.Type = OctetString
 			pdu.Value = oidVal
 
@@ -664,7 +664,7 @@ LINE:
 		case "IPAddress", "Network Address":
 			pdu.Type = IPAddress
 			pdu.Value = oidVal
-			if strings.Contains(oidval, ":") {
+			if strings.Contains(oidVal, ":") {
 				// IpAddress is in "C0:A8:C4:01" format
 				octets := strings.Split(oidVal, ":")
 				for i, octet := range octets {
@@ -691,8 +691,8 @@ LINE:
 			}
 
 		case "Timeticks":
-			matches := regexp.MustCompile(`\d+`).FindAllString(oidval, 1) // pull out "(value)"
-			oidval := matches[0]
+			matches := regexp.MustCompile(`\d+`).FindAllString(oidVal, 1) // pull out "(value)"
+			oidVal := matches[0]
 			if value, err := strconv.ParseInt(oidVal, 10, 64); err != nil {
 				panic(fmt.Sprintf("Err converting integer. oid: %s err: %v", oid, err))
 			} else {
