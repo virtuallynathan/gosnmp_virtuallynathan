@@ -28,7 +28,7 @@ GoSNMP has the following public functions:
 * **ToBigInt** - treat returned values as `*big.Int`
 * **Partition** - facilitates dividing up large slices of OIDs
 
-**virtuallynathan/gosnmp** has diverged from **soniah/gosnmp*,
+**virtuallynathan/gosnmp** has diverged from **soniah/gosnmp**,
 which has has diverged from **alouca/gosnmp** - your existing
 code will require slight modification:
 

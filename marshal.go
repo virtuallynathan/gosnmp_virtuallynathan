@@ -77,55 +77,6 @@ type Logger interface {
 // slog is a global variable that is used for debug logging
 var slog Logger
 
-// generic "sender"
-func (x *GoSNMP) send(pdus []SNMPData, packetOut *SNMPPacket) (result *SNMPPacket, err error) {
-	defer func() {
-		if e := recover(); e != nil {
-			err = fmt.Errorf("recover: %v", e)
-		}
-	}()
-
-	if x.Conn == nil {
-		return nil, fmt.Errorf("&GoSNMP.Conn is missing. Provide a connection or use Connect()")
-	}
-	x.Conn.SetDeadline(time.Now().Add(x.Timeout))
-
-	if x.Logger == nil {
-		x.Logger = log.New(ioutil.Discard, "", 0)
-	}
-	slog = x.Logger // global variable for debug logging
-
-	// RequestID is only used during tests, therefore use an arbitrary uint32 ie 1
-	fBuf, err := packetOut.marshalMsg(pdus, packetOut.PDUType, 1)
-	if err != nil {
-		return nil, fmt.Errorf("marshal: %v", err)
-	}
-	_, err = x.Conn.Write(fBuf)
-	if err != nil {
-		return nil, fmt.Errorf("Error writing to socket: %s", err.Error())
-	}
-
-	// Read and unmarshal the response
-	resp := make([]byte, 4096, 4096)
-	n, err := x.Conn.Read(resp)
-	if err != nil {
-		return nil, fmt.Errorf("Error reading from UDP: %s", err.Error())
-	}
-
-	packetIn, err := unmarshal(resp[:n])
-	if err != nil {
-		return nil, fmt.Errorf("Unable to decode packet: %s", err.Error())
-	}
-	if packetIn == nil {
-		return nil, fmt.Errorf("Unable to decode packet: nil")
-	}
-	if len(packetIn.Variables) < 1 {
-		return nil, fmt.Errorf("No response received.")
-	}
-
-	return packetIn, nil
-}
-
 //mashalNeg marshals an SNMP message
 func (packet *SNMPPacket) marshalMsg(data []SNMPData,
 	pdutype PDUType, requestid uint32) ([]byte, error) {
