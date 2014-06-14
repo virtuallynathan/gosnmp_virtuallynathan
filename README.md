@@ -140,7 +140,7 @@ time or haven't been able to find example devices to query:
 Packet Captures
 ---------------
 
-**Please email me** at sonia@snowfrog.net with packet captures containing
+Please create an issue on GitHub with packet captures (upload them somewhere) containing
 samples of the missing BER types, or of any other bugs you find. Please include
 2 or 3 examples of the missing/faulty BER type, interspersed with a couple of
 other common BER's eg an Integer, a Counter32 ie about 6-8 OIDs.
