@@ -12,6 +12,7 @@ which is based on **alouca/gosnmp** - many thanks to Andreas
 Louca for starting the project. Thanks also to the following who have
 contributed:
 
+* Chris Dance - fixes, and SNMP Walk functionality and examples
 * Sonia Hamilton - many fixes and changes
 * Jacob Dubinsky - all of GetNext and GetBulk
 * Jon Auer - fixes
@@ -19,14 +20,13 @@ contributed:
 Overview
 --------
 
-GoSNMP has the following public functions:
+GoSNMP has the following SNMP functions:
 
 * **Get** (single or multiple OIDs)
 * **GetNext**
 * **GetBulk**
+* **Walk** (beta - thanks to Chris Dance)
 * **Set** (beta - only supports setting one integer OID)
-* **ToBigInt** - treat returned values as `*big.Int`
-* **Partition** - facilitates dividing up large slices of OIDs
 
 **virtuallynathan/gosnmp** has diverged from **soniah/gosnmp**,
 which has has diverged from **alouca/gosnmp** - your existing
@@ -116,13 +116,14 @@ The following BER types have been implemented:
 * 0x02 Integer
 * 0x04 OctetString
 * 0x06 ObjectIdentifier
-* 0x40 IpAddress
+* 0x40 IPAddress (IPv4 Only, IPv6 TODO)
 * 0x41 Counter32
 * 0x42 Gauge32
 * 0x43 TimeTicks
 * 0x46 Counter64
 * 0x80 NoSuchObject
 * 0x81 NoSuchInstance
+* 0x82 EndOfMibView
 
 The following (less common) BER types haven't been implemented, as I ran out of
 time or haven't been able to find example devices to query:
