@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"strconv"
 	"strings"
 )
 
@@ -21,7 +22,7 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 	dumpBytes1(data, fmt.Sprintf("decodeValue: %s", msg), 16)
 	retVal = new(Variable)
 
-	switch Asn1BER(data[0]) {
+	switch ASN1BER(data[0]) {
 
 	case Integer:
 		// 0x02. signed
@@ -134,9 +135,15 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 		slog.Print("decodeValue: type is NoSuchInstance")
 		retVal.Type = NoSuchInstance
 		retVal.Value = nil
+	case EndOfMibView:
+		// 0x82
+		slog.Print("decodeValue: type is EndOfMibView")
+		retVal.Type = EndOfMibView
+		retVal.Value = nil
 	default:
-		slog.Print("decodeValue: type isn't implemented")
-		err = fmt.Errorf("Unable to decode %x - not implemented", data[0])
+		slog.Printf("decodeValue: type %x isn't implemented", data[0])
+		retVal.Type = UnknownType
+		retVal.Value = nil
 	}
 
 	slog.Printf("decodeValue: value is %#v", retVal.Value)
@@ -345,7 +352,7 @@ func parseObjectIdentifier(bytes []byte) (s []int, err error) {
 func parseRawField(data []byte, msg string) (interface{}, int, error) {
 	dumpBytes1(data, fmt.Sprintf("parseRawField: %s", msg), 16)
 
-	switch Asn1BER(data[0]) {
+	switch ASN1BER(data[0]) {
 	case Integer:
 		length := int(data[1])
 		if length == 1 {
@@ -460,7 +467,6 @@ func (s SNMPVersion) String() string {
 	}
 	return "2c"
 }
-
 
 // Partition - returns true when dividing a slice into
 // partition_size lengths, including last partition which may be smaller

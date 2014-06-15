@@ -40,7 +40,7 @@ type SNMPPacket struct {
 //Variable contains the response???? TODO: Figure out what the heck this means
 type Variable struct {
 	Name  []int
-	Type  Asn1BER
+	Type  ASN1BER
 	Value interface{}
 }
 
@@ -169,7 +169,7 @@ func (packet *SNMPPacket) marshalVBL(data []SNMPData) ([]byte, error) {
 		return nil, err
 	}
 
-	// FIX does bytes.Buffer give better performance than byte slices?
+	//FIXME: does bytes.Buffer give better performance than byte slices?
 	result := []byte{byte(Sequence)}
 	result = append(result, variableBufLen...)
 	result = append(result, variableBufBytes...)
@@ -277,13 +277,13 @@ func unmarshalResponse(packet []byte, response *SNMPPacket, length int, requestT
 	}
 	slog.Printf("getResponseLen: %d", getResponseLen)
 
-	// Parse Request-ID
+	// Parse requestID
 	rawRequestID, count, err := parseRawField(packet[cursor:], "request id")
 	if err != nil {
 		return nil, fmt.Errorf("Error parsing SNMP packet request ID: %s", err.Error())
 	}
 	cursor += count
-	if requestid, ok := rawRequestID.(uint); ok {
+	if requestid, ok := rawRequestID.(int); ok {
 		response.RequestID = uint32(requestid)
 		slog.Printf("requestID: %d", response.RequestID)
 	}
@@ -379,6 +379,9 @@ func unmarshalVBL(packet []byte, response *SNMPPacket, length int) (*SNMPPacket,
 
 		// Parse Value
 		v, err := decodeValue(packet[cursor:], "value")
+		if err != nil {
+			return nil, fmt.Errorf("Error decoding value: %v", err)
+		}
 		valLen, _ := parseLength(packet[cursor:])
 		cursor += valLen
 		response.Variables = append(response.Variables, SNMPData{oidToString(oid), v.Type, v.Value})

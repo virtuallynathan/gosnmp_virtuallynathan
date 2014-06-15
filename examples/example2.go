@@ -6,9 +6,10 @@ package main
 
 import (
 	"fmt"
-	g "github.com/soniah/gosnmp"
 	"log"
 	"time"
+
+	g "github.com/virtuallynathan/gosnmp"
 )
 
 func main() {
