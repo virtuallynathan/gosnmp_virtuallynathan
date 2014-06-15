@@ -8,8 +8,10 @@ import (
 	"bytes"
 	"encoding/asn1"
 	"encoding/binary"
+	"errors"
 	"fmt"
-
+	"strconv"
+	"strings"
 )
 
 //SNMPVersion indicates the SNMP version
@@ -53,7 +55,7 @@ type PDUType byte
 
 const (
 	Sequence       PDUType = 0x30
-	GetRequest     PDUType = 0xa0
+	GetRequest             = 0xa0
 	GetNextRequest         = 0xa1
 	GetResponse            = 0xa2
 	SetRequest             = 0xa3
@@ -174,9 +176,9 @@ func (packet *SNMPPacket) marshalVBL(data []SNMPData) ([]byte, error) {
 	return result, nil
 }
 
-// marshal a varbind
+//MarshalVarBind marshals a varbind??? TODO: what does this mean?
 func MarshalVarBind(data *SNMPData) ([]byte, error) {
-	oid, err := marshalOID(data.Name)
+	oid, err := marshalOid(data.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -382,4 +384,86 @@ func unmarshalVBL(packet []byte, response *SNMPPacket, length int) (*SNMPPacket,
 		response.Variables = append(response.Variables, SNMPData{oidToString(oid), v.Type, v.Value})
 	}
 	return response, nil
+}
+
+// marshalLength builds a byte representation of length
+//
+// http://luca.ntop.org/Teaching/Appunti/asn1.html
+//
+// Length octets. There are two forms: short (for lengths between 0 and 127),
+// and long definite (for lengths between 0 and 2^1008 -1).
+//
+// * Short form. One octet. Bit 8 has value "0" and bits 7-1 give the length.
+// * Long form. Two to 127 octets. Bit 8 of first octet has value "1" and bits
+//   7-1 give the number of additional length octets. Second and following
+//   octets give the length, base 256, most significant digit first.
+func marshalLength(length int) ([]byte, error) {
+
+	// more convenient to pass length as int than uint64. Therefore check < 0
+	if length < 0 {
+		return nil, fmt.Errorf("length must be greater than zero")
+	} else if length < 127 {
+		return []byte{byte(length)}, nil
+	}
+
+	buf := new(bytes.Buffer)
+	err := binary.Write(buf, binary.LittleEndian, uint64(length))
+	if err != nil {
+		return nil, err
+	}
+
+	bufBytes, err2 := buf.ReadBytes(0) // can't use buf.Bytes() - trailing 00's
+	if err2 != nil {
+		return nil, err
+	}
+	bufBytes = bufBytes[0 : len(bufBytes)-1] // remove trailing 00
+
+	header := []byte{byte(128 | len(bufBytes))}
+	return append(header, bufBytes...), nil
+}
+
+func marshalObjectIdentifier(oid []int) (ret []byte, err error) {
+	out := new(bytes.Buffer)
+	if len(oid) < 2 || oid[0] > 6 || oid[1] >= 40 {
+		return nil, errors.New("invalid object identifier")
+	}
+
+	err = out.WriteByte(byte(oid[0]*40 + oid[1]))
+	if err != nil {
+		return
+	}
+	for i := 2; i < len(oid); i++ {
+		err = marshalBase128Int(out, int64(oid[i]))
+		if err != nil {
+			return
+		}
+	}
+
+	ret = out.Bytes()
+	return
+}
+
+func marshalOid(oid string) ([]byte, error) {
+	var err error
+
+	// Encode the oid
+	oid = strings.Trim(oid, ".")
+	oidParts := strings.Split(oid, ".")
+	oidBytes := make([]int, len(oidParts))
+
+	// Convert the string OID to an array of integers
+	for i := 0; i < len(oidParts); i++ {
+		oidBytes[i], err = strconv.Atoi(oidParts[i])
+		if err != nil {
+			return nil, fmt.Errorf("Unable to parse OID: %s\n", err.Error())
+		}
+	}
+
+	mOid, err := marshalObjectIdentifier(oidBytes)
+
+	if err != nil {
+		return nil, fmt.Errorf("Unable to marshal OID: %s\n", err.Error())
+	}
+
+	return mOid, err
 }
