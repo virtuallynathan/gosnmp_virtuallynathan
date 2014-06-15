@@ -2,3 +2,9 @@ language: go
 
 install:
 - go get github.com/virtuallynathan/gosnmp
+- go get github.com/mattn/goveralls
+- go get code.google.com/p/go.tools/cmd/cover
+
+script:
+cd $GOPATH/src/github.com/virtuallynathan/gosnmp
+goveralls -repotoken xie4ctTdMsgJvOwyVcFdnEbMRXgf4Gl0M
