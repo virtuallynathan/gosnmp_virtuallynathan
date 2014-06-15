@@ -1,9 +1,7 @@
 gosnmp
 ======
-Build Status:
 ![Build Status]
 (https://travis-ci.org/virtuallynathan/gosnmp.svg?branch=master)
-Code Coverage:
 [![Coverage Status](https://img.shields.io/coveralls/virtuallynathan/gosnmp.svg)](https://coveralls.io/r/virtuallynathan/gosnmp)
 
 GoSNMP is an SNMP client library written fully in Go. Currently it
