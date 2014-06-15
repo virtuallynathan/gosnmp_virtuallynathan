@@ -9,9 +9,7 @@ import (
 	"encoding/asn1"
 	"encoding/binary"
 	"fmt"
-	"io/ioutil"
-	"log"
-	"time"
+
 )
 
 //SNMPVersion indicates the SNMP version
@@ -275,7 +273,7 @@ func unmarshalResponse(packet []byte, response *SNMPPacket, length int, requestT
 	if len(packet) != getResponseLen {
 		return nil, fmt.Errorf("Error verifying Response sanity: Got %d Expected: %d\n", len(packet), getResponseLen)
 	}
-	slog.Printf("getresponse_length: %d", getResponseLen)
+	slog.Printf("getResponseLen: %d", getResponseLen)
 
 	// Parse Request-ID
 	rawRequestID, count, err := parseRawField(packet[cursor:], "request id")
@@ -285,14 +283,14 @@ func unmarshalResponse(packet []byte, response *SNMPPacket, length int, requestT
 	cursor += count
 	if requestid, ok := rawRequestID.(uint); ok {
 		response.RequestID = uint32(requestid)
-		slog.Printf("request-id: %d", response.RequestID)
+		slog.Printf("requestID: %d", response.RequestID)
 	}
 
 	if response.PDUType == GetBulkRequest {
 		// Parse Non Repeaters
-		rawNonRepeaters, count, err := parseRawField(packet[cursor:], "non repeaters")
+		rawNonRepeaters, count, err := parseRawField(packet[cursor:], "maxReps")
 		if err != nil {
-			return nil, fmt.Errorf("Error parsing SNMP packet non repeaters: %s", err.Error())
+			return nil, fmt.Errorf("Error parsing SNMP packet nonRepeaters: %s", err.Error())
 		}
 		cursor += count
 		if nonRepeaters, ok := rawNonRepeaters.(int); ok {
@@ -300,9 +298,9 @@ func unmarshalResponse(packet []byte, response *SNMPPacket, length int, requestT
 		}
 
 		// Parse Max Repetitions
-		rawMaxReps, count, err := parseRawField(packet[cursor:], "max repetitions")
+		rawMaxReps, count, err := parseRawField(packet[cursor:], "maxReps")
 		if err != nil {
-			return nil, fmt.Errorf("Error parsing SNMP packet max repetitions: %s", err.Error())
+			return nil, fmt.Errorf("Error parsing SNMP packet maxReps: %s", err.Error())
 		}
 		cursor += count
 		if MaxReps, ok := rawMaxReps.(int); ok {
@@ -310,7 +308,7 @@ func unmarshalResponse(packet []byte, response *SNMPPacket, length int, requestT
 		}
 	} else {
 		// Parse Error-Status
-		rawError, count, err := parseRawField(packet[cursor:], "error-status")
+		rawError, count, err := parseRawField(packet[cursor:], "errorStatus")
 		if err != nil {
 			return nil, fmt.Errorf("Error parsing SNMP packet error: %s", err.Error())
 		}

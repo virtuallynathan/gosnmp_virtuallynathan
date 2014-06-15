@@ -25,17 +25,19 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 
 	switch Asn1BER(data[0]) {
 
-	case Integer: // 0x02. signed
+	case Integer:
+		// 0x02. signed
 		slog.Print("decodeValue: type is Integer")
 		length, cursor := parseLength(data)
-		if _, err := parseInt(data[cursor:length]); err != nil {
+		if ret, err := parseInt(data[cursor:length]); err != nil {
 			slog.Printf("%v:", err)
 			return retVal, fmt.Errorf("bytes: % x err: %v", data, err)
+		} else {
+			retVal.Type = Integer
+			retVal.Value = ret
 		}
-		retVal.Type = Integer
-		retVal.Value = retVal
-
-	case OctetString: // 0x04
+	case OctetString:
+		// 0x04
 		slog.Print("decodeValue: type is OctetString")
 		length, cursor := parseLength(data)
 		retVal.Type = OctetString
@@ -46,11 +48,13 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 		} else {
 			retVal.Value = string(data[cursor:length])
 		}
-	case Null: // 0x05
+	case Null:
+		// 0x05
 		slog.Print("decodeValue: type is Null")
 		retVal.Type = Null
 		retVal.Value = nil
-	case ObjectIdentifier: // 0x06
+	case ObjectIdentifier:
+		// 0x06
 		slog.Print("decodeValue: type is ObjectIdentifier")
 		rawOid, _, err := parseRawField(data, "OID")
 		if err != nil {
@@ -63,9 +67,10 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 		}
 		retVal.Type = ObjectIdentifier
 		retVal.Value = oidToString(oid)
-	case IPAddress: // 0x40
-		slog.Print("decodeValue: type is IPAddress")
-		//TODO: IPv6 Support
+	case IPAddress:
+		// 0x40
+		slog.Print("decodeValue: type is IpAddress")
+		// total hack - IPv6? What IPv6...
 		if len(data) < 6 {
 			return nil, fmt.Errorf("not enough data for ipaddress: % x", data)
 		} else if data[1] != 4 {
@@ -77,7 +82,8 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 			IPv4 += fmt.Sprintf(".%d", data[i])
 		}
 		retVal.Value = IPv4[1:]
-	case Counter32: // 0x41. unsigned
+	case Counter32:
+		// 0x41. unsigned
 		slog.Print("decodeValue: type is Counter32")
 		length, cursor := parseLength(data)
 		ret, err := parseUint(data[cursor:length])
@@ -87,7 +93,8 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 		}
 		retVal.Type = Counter32
 		retVal.Value = ret
-	case Gauge32: // 0x42. unsigned
+	case Gauge32:
+		// 0x42. unsigned
 		slog.Print("decodeValue: type is Gauge32")
 		length, cursor := parseLength(data)
 		ret, err := parseUint(data[cursor:length])
@@ -97,7 +104,8 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 		}
 		retVal.Type = Gauge32
 		retVal.Value = ret
-	case TimeTicks: // 0x43
+	case TimeTicks:
+		// 0x43
 		slog.Print("decodeValue: type is TimeTicks")
 		length, cursor := parseLength(data)
 		ret, err := parseInt(data[cursor:length])
@@ -107,7 +115,8 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 		}
 		retVal.Type = TimeTicks
 		retVal.Value = ret
-	case Counter64: // 0x46
+	case Counter64:
+		// 0x46
 		slog.Print("decodeValue: type is Counter64")
 		length, cursor := parseLength(data)
 		ret, err := parseInt64(data[cursor:length])
@@ -117,11 +126,13 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 		}
 		retVal.Type = Counter64
 		retVal.Value = ret
-	case NoSuchObject: // 0x80
+	case NoSuchObject:
+		// 0x80
 		slog.Print("decodeValue: type is NoSuchObject")
 		retVal.Type = NoSuchObject
 		retVal.Value = nil
-	case NoSuchInstance: // 0x81
+	case NoSuchInstance:
+		// 0x81
 		slog.Print("decodeValue: type is NoSuchInstance")
 		retVal.Type = NoSuchInstance
 		retVal.Value = nil

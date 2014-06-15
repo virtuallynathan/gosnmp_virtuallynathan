@@ -14,6 +14,8 @@ import (
 	"net"
 	"strconv"
 	"time"
+	"log"
+	"io/ioutil"
 )
 
 // MaxOids is the maximum number of oids allowed in a Get()
