@@ -3,6 +3,7 @@ gosnmp
 Build Status:
 ![Build Status]
 (https://travis-ci.org/virtuallynathan/gosnmp.svg?branch=master)
+Working on adding Coverall's code coverage.
 
 GoSNMP is an SNMP client library written fully in Go. Currently it
 supports GetRequest, GetNext, GetBulk, and SetRequest (beta, see below).
