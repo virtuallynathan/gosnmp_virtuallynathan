@@ -78,8 +78,7 @@ type Logger interface {
 var slog Logger
 
 //mashalNeg marshals an SNMP message
-func (packet *SNMPPacket) marshalMsg(data []SNMPData,
-	pdutype PDUType, requestid uint32) ([]byte, error) {
+func (packet *SNMPPacket) marshalMsg(data []SNMPData, pdutype PDUType, requestID uint32) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	// version
@@ -90,7 +89,7 @@ func (packet *SNMPPacket) marshalMsg(data []SNMPData,
 	buf.WriteString(packet.Community)
 
 	// pdu
-	pdu, err := packet.marshalPDU(data, requestid)
+	pdu, err := packet.marshalPDU(data, requestID)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +113,7 @@ func (packet *SNMPPacket) marshalMsg(data []SNMPData,
 func (packet *SNMPPacket) marshalPDU(data []SNMPData, requestID uint32) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
-	// requestid
+	// requestID
 	buf.Write([]byte{2, 4})
 	err := binary.Write(buf, binary.BigEndian, requestID)
 	if err != nil {
@@ -283,8 +282,8 @@ func unmarshalResponse(packet []byte, response *SNMPPacket, length int, requestT
 		return nil, fmt.Errorf("Error parsing SNMP packet request ID: %s", err.Error())
 	}
 	cursor += count
-	if requestid, ok := rawRequestID.(int); ok {
-		response.RequestID = uint32(requestid)
+	if requestID, ok := rawRequestID.(int); ok {
+		response.RequestID = uint32(requestID)
 		slog.Printf("requestID: %d", response.RequestID)
 	}
 

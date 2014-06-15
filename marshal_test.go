@@ -28,7 +28,7 @@ type testsEnmarshalVarBindPos struct {
 	// used to find the start and finish values...
 	start   int
 	finish  int
-	pduType Asn1BER
+	pduType ASN1BER
 	pduVal  interface{}
 }
 
