@@ -1,5 +1,11 @@
 language: go
 
+notificaitons:
+  email:
+    recipients: virtuallynathan@gmail.com
+    on_success: change
+    on_failure: always
+
 install:
 - go get github.com/virtuallynathan/gosnmp
 - go get github.com/mattn/goveralls
