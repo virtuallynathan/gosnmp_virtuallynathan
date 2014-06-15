@@ -152,7 +152,6 @@ func (packet *SNMPPacket) marshalPDU(data []SNMPData, requestID uint32) ([]byte,
 
 // marshal a varbind list
 func (packet *SNMPPacket) marshalVBL(data []SNMPData) ([]byte, error) {
-
 	variableBuf := new(bytes.Buffer)
 	for _, pdu := range data {
 		vb, err := MarshalVarBind(&pdu)
@@ -209,8 +208,6 @@ func MarshalVarBind(data *SNMPData) ([]byte, error) {
 
 	return pduBuf.Bytes(), nil
 }
-
-// -- Unmarshalling Logic ------------------------------------------------------
 
 func unmarshal(packet []byte) (*SNMPPacket, error) {
 	response := new(SNMPPacket)
@@ -389,7 +386,6 @@ func unmarshalVBL(packet []byte, response *SNMPPacket, length int) (*SNMPPacket,
 }
 
 // marshalLength builds a byte representation of length
-//
 // http://luca.ntop.org/Teaching/Appunti/asn1.html
 //
 // Length octets. There are two forms: short (for lengths between 0 and 127),
