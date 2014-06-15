@@ -235,14 +235,14 @@ func parseBase128Int(bytes []byte, initOffset int) (ret, offset int, err error) 
 // parseBitString parses an ASN.1 bit string from the given byte slice and returns it.
 func parseBitString(bytes []byte) (ret BitStringValue, err error) {
 	if len(bytes) == 0 {
-		err = errors.New("zero length bit string")
+		err = errors.New("zero length BIT STRING")
 		return
 	}
 	paddingBits := int(bytes[0])
 	if paddingBits > 7 ||
 		len(bytes) == 1 && paddingBits > 0 ||
 		bytes[len(bytes)-1]&((1<<bytes[0])-1) != 0 {
-		err = errors.New("invalid padding bits in bit string")
+		err = errors.New("invalid padding bits in BIT STRING")
 		return
 	}
 	ret.BitLength = (len(bytes)-1)*8 - paddingBits
@@ -318,7 +318,7 @@ func parseLength(bytes []byte) (length int, cursor int) {
 // that are assigned in a hierarchy.
 func parseObjectIdentifier(bytes []byte) (s []int, err error) {
 	if len(bytes) == 0 {
-		err = fmt.Errorf("zero length object identifier")
+		err = fmt.Errorf("zero length OBJECT IDENTIFIER")
 		return
 	}
 
@@ -459,4 +459,74 @@ func (s SNMPVersion) String() string {
 		return "1"
 	}
 	return "2c"
+}
+
+
+// Partition - returns true when dividing a slice into
+// partition_size lengths, including last partition which may be smaller
+// than partition_size. This is useful when you have a large array of OIDs
+// to run Get() on. See the tests for example usage.
+//
+// For example for a slice of 8 items to be broken into partitions of
+// length 3, Partition returns true for the current_position having
+// the following values:
+//
+// 0  1  2  3  4  5  6  7
+//       T        T     T
+//
+func Partition(curPos, partitionSize, sliceLen int) bool {
+	if curPos < 0 || curPos >= sliceLen {
+		return false
+	}
+	if partitionSize == 1 { // redundant, but an obvious optimisation
+		return true
+	}
+	if curPos%partitionSize == partitionSize-1 {
+		return true
+	}
+	if curPos == sliceLen-1 {
+		return true
+	}
+	return false
+}
+
+// ToBigInt converts SNMPData.Value to big.Int, or returns a zero big.Int for
+// non int-like types (eg strings).
+//
+// This is a convenience function to make working with SNMPData's easier - it
+// reduces the need for type assertions. A big.Int is convenient, as SNMP can
+// return int32, uint32, and uint64.
+func ToBigInt(value interface{}) *big.Int {
+	var val int64
+	switch value := value.(type) { // shadow
+	case int:
+		val = int64(value)
+	case int8:
+		val = int64(value)
+	case int16:
+		val = int64(value)
+	case int32:
+		val = int64(value)
+	case int64:
+		val = int64(value)
+	case uint:
+		val = int64(value)
+	case uint8:
+		val = int64(value)
+	case uint16:
+		val = int64(value)
+	case uint32:
+		val = int64(value)
+	case uint64:
+		return (uint64ToBigInt(value))
+	case string:
+		// for testing and other apps - numbers may appear as strings
+		var err error
+		if val, err = strconv.ParseInt(value, 10, 64); err != nil {
+			return new(big.Int)
+		}
+	default:
+		return new(big.Int)
+	}
+	return big.NewInt(val)
 }
