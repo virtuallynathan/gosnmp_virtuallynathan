@@ -70,7 +70,7 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 	case IPAddress:
 		// 0x40
 		slog.Print("decodeValue: type is IpAddress")
-		// total hack - IPv6? What IPv6...
+		//TODO: IPv6 support!
 		if len(data) < 6 {
 			return nil, fmt.Errorf("not enough data for ipaddress: % x", data)
 		} else if data[1] != 4 {
