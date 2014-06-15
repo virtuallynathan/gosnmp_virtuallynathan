@@ -45,8 +45,6 @@ sending packet captures (see Packet Captures below). There may be more
 than one branch on github. **master** is safe to pull from, other
 branches unsafe as history may be rewritten.
 
-Nathan Owens, virtuallynathan@gmail.com
-
 Installation
 ------------
 
