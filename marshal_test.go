@@ -46,6 +46,88 @@ type testsEnmarshalT struct {
 
 }
 
+var BenchmarkEnmarshal = []testsEnmarshalT{
+	{
+		Version2c,
+		"public",
+		GetRequest,
+		1871507044,
+		kyoceraReqBytes,
+		"kyoceraReq",
+		0x0e, // pdu start
+		0x1d, // vbl start
+		0xa0, // finish
+		[]testsEnmarshalVarBindPos{
+			{".1.3.6.1.2.1.1.7.0", 0x20, 0x2d, Null, nil},
+			{".1.3.6.1.2.1.2.2.1.10.1", 0x2e, 0x3d, Null, nil},
+			{".1.3.6.1.2.1.2.2.1.5.1", 0x3e, 0x4d, Null, nil},
+			{".1.3.6.1.2.1.1.4.0", 0x4e, 0x5b, Null, nil},
+			{".1.3.6.1.2.1.43.5.1.1.15.1", 0x5c, 0x6c, Null, nil},
+			{".1.3.6.1.2.1.4.21.1.1.127.0.0.1", 0x6d, 0x7f, Null, nil},
+			{".1.3.6.1.4.1.23.2.5.1.1.1.4.2", 0x80, 0x92, Null, nil},
+			{".1.3.6.1.2.1.1.3.0", 0x93, 0xa0, Null, nil},
+		},
+	},
+}
+
+var BenchmarkUnmarshalStruct = []struct {
+	in  func() []byte
+	out *SNMPPacket
+}{
+	{kyoceraRespBytes,
+		&SNMPPacket{
+			Version:    Version2c,
+			Community:  "public",
+			PDUType:    GetResponse,
+			RequestID:  1066889284,
+			Error:      0,
+			ErrorIndex: 0,
+			Variables: []SNMPData{
+				{
+					Name:  ".1.3.6.1.2.1.1.7.0",
+					Type:  Integer,
+					Value: 104,
+				},
+				{
+					Name:  ".1.3.6.1.2.1.2.2.1.10.1",
+					Type:  Counter32,
+					Value: 271070065,
+				},
+				{
+					Name:  ".1.3.6.1.2.1.2.2.1.5.1",
+					Type:  Gauge32,
+					Value: 100000000,
+				},
+				{
+					Name:  ".1.3.6.1.2.1.1.4.0",
+					Type:  OctetString,
+					Value: "Administrator",
+				},
+				{
+					Name:  ".1.3.6.1.2.1.43.5.1.1.15.1",
+					Type:  Null,
+					Value: nil,
+				},
+				{
+					Name:  ".1.3.6.1.2.1.4.21.1.1.127.0.0.1",
+					Type:  IPAddress,
+					Value: "127.0.0.1",
+				},
+				{
+					Name:  ".1.3.6.1.4.1.23.2.5.1.1.1.4.2",
+					Type:  OctetString,
+					Value: "00 15 99 37 76 2b",
+				},
+				{
+					Name:  ".1.3.6.1.2.1.1.3.0",
+					Type:  TimeTicks,
+					Value: 318870100,
+				},
+			},
+		},
+	},
+}
+
 var testsEnmarshal = []testsEnmarshalT{
 	{
 		Version2c,
@@ -98,8 +180,39 @@ var testsEnmarshal = []testsEnmarshalT{
 	},
 }
 
-// helpers for Enmarshal tests
+//Benchmarks
+func BenchmarkMarshalMsg(b *testing.B) {
+	//run the MarshalMsg function b.N times
+	for n := 0; n < b.N; n++ {
+		test := testsEnmarshal[0]
+		x := &SNMPPacket{
+			Community: test.community,
+			Version:   test.version,
+			PDUType:   test.requestType,
+			RequestID: test.requestID,
+		}
+		data := vbPosPDUs(test)
 
+		_, err := x.marshalMsg(data, test.requestType, test.requestID)
+		if err != nil {
+			b.Errorf("#%s: marshal() err returned: %v", test.funcName, err)
+		}
+	}
+}
+
+func BenchmarkUnmarshal(b *testing.B) {
+	//run the MarshalMsg function b.N times
+	for n := 0; n < b.N; n++ {
+		for _, test := range testsUnmarshal {
+			if _, err := unmarshal(test.in()); err != nil {
+				b.Errorf("Unmarshal returned err: %v", err)
+			}
+		}
+	}
+
+}
+
+//Tests
 // vbPosPDUs returns a slice of oids in the given test
 func vbPosPDUs(test testsEnmarshalT) (data []SNMPData) {
 	for _, vbp := range test.vbPos {
@@ -414,12 +527,12 @@ var testsUnmarshal = []struct {
 	},
 	{ciscoGetBulkRespBytes,
 		&SNMPPacket{
-			Version:        Version2c,
-			Community:      "public",
-			PDUType:        GetResponse,
-			RequestID:      250000266,
-			NonRepeaters:   0,
-			MaxReps: 10,
+			Version:      Version2c,
+			Community:    "public",
+			PDUType:      GetResponse,
+			RequestID:    250000266,
+			NonRepeaters: 0,
+			MaxReps:      10,
 			Variables: []SNMPData{
 				{
 					Name:  ".1.3.6.1.2.1.1.9.1.4.1",

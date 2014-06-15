@@ -375,7 +375,7 @@ func unmarshalVBL(packet []byte, response *SNMPPacket, length int) (*SNMPPacket,
 		if oid, ok = rawOid.([]int); !ok {
 			return nil, fmt.Errorf("unable to type assert rawOid |%v| to []int", rawOid)
 		}
-		slog.Printf("OID: %s", oidToString(oid))
+		slog.Printf("Oid: %s", oidToString(oid))
 
 		// Parse Value
 		v, err := decodeValue(packet[cursor:], "value")

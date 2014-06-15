@@ -235,14 +235,14 @@ func parseBase128Int(bytes []byte, initOffset int) (ret, offset int, err error) 
 // parseBitString parses an ASN.1 bit string from the given byte slice and returns it.
 func parseBitString(bytes []byte) (ret BitStringValue, err error) {
 	if len(bytes) == 0 {
-		err = errors.New("zero length BIT STRING")
+		err = errors.New("zero length bit string")
 		return
 	}
 	paddingBits := int(bytes[0])
 	if paddingBits > 7 ||
 		len(bytes) == 1 && paddingBits > 0 ||
 		bytes[len(bytes)-1]&((1<<bytes[0])-1) != 0 {
-		err = errors.New("invalid padding bits in BIT STRING")
+		err = errors.New("invalid padding bits in bit string")
 		return
 	}
 	ret.BitLength = (len(bytes)-1)*8 - paddingBits
@@ -318,7 +318,7 @@ func parseLength(bytes []byte) (length int, cursor int) {
 // that are assigned in a hierarchy.
 func parseObjectIdentifier(bytes []byte) (s []int, err error) {
 	if len(bytes) == 0 {
-		err = fmt.Errorf("zero length OBJECT IDENTIFIER")
+		err = fmt.Errorf("zero length object identifier")
 		return
 	}
 
