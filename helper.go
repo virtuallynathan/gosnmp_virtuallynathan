@@ -186,7 +186,7 @@ func dumpBytes2(desc string, bb []byte, cursor int) string {
 
 func marshalBase128Int(out *bytes.Buffer, n int64) (err error) {
 	if n == 0 {
-		err = out.WriteByte(0)
+		_ = out.WriteByte(0)
 		return
 	}
 
@@ -201,10 +201,7 @@ func marshalBase128Int(out *bytes.Buffer, n int64) (err error) {
 		if i != 0 {
 			o |= 0x80
 		}
-		err = out.WriteByte(o)
-		if err != nil {
-			return
-		}
+		_ = out.WriteByte(o)
 	}
 
 	return nil

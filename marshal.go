@@ -430,10 +430,8 @@ func marshalObjectIdentifier(oid []int) (ret []byte, err error) {
 		return nil, errors.New("invalid object identifier")
 	}
 
-	err = out.WriteByte(byte(oid[0]*40 + oid[1]))
-	if err != nil {
-		return
-	}
+	_ = out.WriteByte(byte(oid[0]*40 + oid[1]))
+
 	for i := 2; i < len(oid); i++ {
 		err = marshalBase128Int(out, int64(oid[i]))
 		if err != nil {
