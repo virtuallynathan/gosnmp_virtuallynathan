@@ -282,7 +282,7 @@ func unmarshalResponse(packet []byte, response *SNMPPacket, length int, requestT
 		return nil, fmt.Errorf("Error parsing SNMP packet request ID: %s", err.Error())
 	}
 	cursor += count
-	if requestID, ok := rawRequestID.(int); ok {
+	if requestID, ok := rawRequestID.(uint); ok {
 		response.RequestID = uint32(requestID)
 		slog.Printf("requestID: %d", response.RequestID)
 	}
