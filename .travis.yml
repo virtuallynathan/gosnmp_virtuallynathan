@@ -10,7 +10,3 @@ install:
 - go get github.com/virtuallynathan/gosnmp
 - go get github.com/mattn/goveralls
 - go get code.google.com/p/go.tools/cmd/cover
-
-script:
-- go test -covermode=count -coverprofile=profile.cov
-- goveralls -coverprofile=profile.cov -service=travis-ci
