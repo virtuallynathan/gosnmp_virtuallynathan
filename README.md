@@ -16,10 +16,11 @@ which is based on **alouca/gosnmp** - many thanks to Andreas
 Louca for starting the project. Thanks also to the following who have
 contributed:
 
-* Chris Dance - fixes, and SNMP Walk functionality and examples
-* Sonia Hamilton - many fixes and changes
-* Jacob Dubinsky - all of GetNext and GetBulk
-* Jon Auer - fixes
+* Chris Dance (@codedance) - Fixes, and SNMP Walk functionality and examples
+* Sonia Hamilton (@soniah) - Many fixes and changes
+* Jacob Dubinsky (@jdubinsky) - All of GetNext and GetBulk
+* Jon Auer (@jda) - Data truncation fix
+* Andreas Louca (@alouca) - Original library
 
 Overview
 --------
