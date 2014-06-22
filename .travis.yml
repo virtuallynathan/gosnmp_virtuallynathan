@@ -10,8 +10,3 @@ notificaitons:
     recipients: virtuallynathan@gmail.com
     on_success: change
     on_failure: always
-
-install:
-- go get github.com/virtuallynathan/gosnmp
-- go get github.com/mattn/goveralls
-- go get code.google.com/p/go.tools/cmd/cover
