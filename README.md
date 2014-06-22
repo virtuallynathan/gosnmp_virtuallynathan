@@ -16,7 +16,7 @@ which is based on **alouca/gosnmp** - many thanks to Andreas
 Louca for starting the project. Thanks also to the following who have
 contributed:
 
-* Chris Dance (@codedance) - Fixes, and SNMP Walk functionality and examples
+* Chris Dance (@codedance) - Fixes, SNMP Walk functionality and examples, Retry Support
 * Sonia Hamilton (@soniah) - Many fixes and changes
 * Jacob Dubinsky (@jdubinsky) - All of GetNext and GetBulk
 * Jon Auer (@jda) - Data truncation fix
@@ -30,7 +30,8 @@ GoSNMP has the following SNMP functions:
 * **Get** (single or multiple OIDs)
 * **GetNext**
 * **GetBulk**
-* **Walk** (beta - thanks to Chris Dance)
+* **Walk** - retrieves a subtree of values using GETNEXT.
+* **BulkWalk** - retrieves a subtree of values using GETBULK.
 * **Set** (beta - only supports setting one integer OID)
 
 **virtuallynathan/gosnmp** has diverged from **soniah/gosnmp**,
@@ -112,6 +113,8 @@ Running this example gives the following output (from my printer):
 
 **example/example2.go** is similar to example.go, however is uses a custom
 &GoSNMP rather than **g.Default**.
+
+**example/walkexample.go** demonstrates using ```BulkWalk```.
 
 Bugs
 ----

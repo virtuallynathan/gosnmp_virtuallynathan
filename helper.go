@@ -14,9 +14,16 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"math/rand"
+	"net"
 	"strconv"
 	"strings"
 )
+
+// Generate a valid SNMP request ID.
+func getRandomRequestID() uint32 {
+	return uint32(rand.Int31())
+}
 
 func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 	dumpBytes1(data, fmt.Sprintf("decodeValue: %s", msg), 16)
@@ -70,18 +77,23 @@ func decodeValue(data []byte, msg string) (retVal *Variable, err error) {
 	case IPAddress:
 		// 0x40
 		slog.Print("decodeValue: type is IpAddress")
-		//TODO: IPv6 support!
-		if len(data) < 6 {
-			return nil, fmt.Errorf("not enough data for ipaddress: % x", data)
-		} else if data[1] != 4 {
-			return nil, fmt.Errorf("got ipaddress len %d, expected 4", data[1])
-		}
 		retVal.Type = IPAddress
-		var IPv4 string
-		for i := 2; i < 6; i++ {
-			IPv4 += fmt.Sprintf(".%d", data[i])
+		switch data[1] {
+		case 4: // IPv4
+			if len(data) < 6 {
+				return nil, fmt.Errorf("not enough data for ipv4 address: %x", data)
+			}
+			retVal.Value = net.IPv4(data[2], data[3], data[4], data[5]).String()
+		case 16: // IPv6
+			if len(data) < 18 {
+				return nil, fmt.Errorf("not enough data for ipv6 address: %x", data)
+			}
+			d := make(net.IP, 16)
+			copy(d, data[2:17])
+			retVal.Value = d.String()
+		default:
+			return nil, fmt.Errorf("got ipaddress len %d, expected 4 or 16", data[1])
 		}
-		retVal.Value = IPv4[1:]
 	case Counter32:
 		// 0x41. unsigned
 		slog.Print("decodeValue: type is Counter32")
@@ -352,9 +364,9 @@ func parseRawField(data []byte, msg string) (interface{}, int, error) {
 
 	switch ASN1BER(data[0]) {
 	case Integer:
-		length, cursor := parseLength(data)
 		var i int
 		var err error
+		length, cursor := parseLength(data)
 		if i, err = parseInt(data[cursor:length]); err != nil {
 			return nil, 0, fmt.Errorf("Unable to parse raw INTEGER: %x err: %v", data, err)
 		}

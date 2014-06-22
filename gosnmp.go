@@ -13,11 +13,14 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"sync/atomic"
 	"time"
 )
 
-//MaxOids is the maximum number of oids allowed in a Get()
-const MaxOids = 60
+const (
+	rxBufSize = 65536
+	MaxOids   = 60 //MaxOids is the maximum number of oids allowed in a Get()
+)
 
 //GoSNMP is the struct containing info about an SNMP connection
 type GoSNMP struct {
@@ -26,6 +29,8 @@ type GoSNMP struct {
 	Community string        //Community is an SNMP Community string
 	Version   SNMPVersion   //Version is an SNMP Version
 	Timeout   time.Duration //Timeout is the timeout for the SNMP Query
+	Retries   int           //Set the number of retries to attempt within timeout.
+	requestID uint32        // Internal - used to sync requests to responses
 	Conn      net.Conn      //Conn is net connection to use, typically establised using GoSNMP.Connect()
 	//Logger is the GoSNMP.Logger to use for debugging. If nil, debugging
 	//output will be discarded (/dev/null). For verbose logging to stdout:
@@ -39,6 +44,7 @@ var Default = &GoSNMP{
 	Community: "public",
 	Version:   Version2c,
 	Timeout:   time.Duration(2) * time.Second,
+	Retries:   3,
 }
 
 //SNMPData will be used when doing SNMP Set's
@@ -79,13 +85,14 @@ func (x *GoSNMP) Connect() error {
 	Conn, err := net.DialTimeout("udp", fmt.Sprintf("%s:%d", x.Target, x.Port), x.Timeout)
 	if err == nil {
 		x.Conn = Conn
+		x.requestID = getRandomRequestID()
 	} else {
 		return fmt.Errorf("Error establishing connection to host: %s\n", err.Error())
 	}
 	return nil
 }
 
-//send is a generic sender.
+// generic "sender"
 func (x *GoSNMP) send(pdus []SNMPData, packetOut *SNMPPacket) (result *SNMPPacket, err error) {
 	defer func() {
 		if e := recover(); e != nil {
@@ -96,49 +103,86 @@ func (x *GoSNMP) send(pdus []SNMPData, packetOut *SNMPPacket) (result *SNMPPacke
 	if x.Conn == nil {
 		return nil, fmt.Errorf("&GoSNMP.Conn is missing. Provide a connection or use Connect()")
 	}
-	x.Conn.SetDeadline(time.Now().Add(x.Timeout))
 
 	if x.Logger == nil {
 		x.Logger = log.New(ioutil.Discard, "", 0)
 	}
 	slog = x.Logger // global variable for debug logging
 
-	// RequestID is only used during tests, therefore use an arbitrary uint32 ie 1
-	// FIXME: Should be an atomic counter (started at a random value)
-	fBuf, err := packetOut.marshalMsg(pdus, packetOut.PDUType, 1)
-	if err != nil {
-		return nil, fmt.Errorf("marshal: %v", err)
+	finalDeadline := time.Now().Add(x.Timeout)
+
+	if x.Retries < 0 {
+		x.Retries = 0
 	}
-	_, err = x.Conn.Write(fBuf)
-	if err != nil {
-		return nil, fmt.Errorf("Error writing to socket: %s", err.Error())
+	allReqIDs := make([]uint32, 0, x.Retries+1)
+	for retries := 0; ; retries++ {
+		if retries > 0 {
+			if retries > x.Retries || time.Now().After(finalDeadline) {
+				err = fmt.Errorf("Request timeout (after %d retries)", retries-1)
+				break
+			}
+			slog.Printf("Retry number %d. Last error was: %v", retries, err)
+		}
+		err = nil
+
+		reqDeadline := time.Now().Add(x.Timeout / time.Duration(x.Retries+1))
+		x.Conn.SetDeadline(reqDeadline)
+
+		// Request ID is an atomic counter (started at a random value)
+		reqID := atomic.AddUint32(&(x.requestID), 1)
+		allReqIDs = append(allReqIDs, reqID)
+
+		var outBuf []byte
+		outBuf, err = packetOut.marshalMsg(pdus, packetOut.PDUType, reqID)
+		if err != nil {
+			// Don't retry - not going to get any better!
+			err = fmt.Errorf("marshal: %v", err)
+			break
+		}
+		_, err = x.Conn.Write(outBuf)
+		if err != nil {
+			err = fmt.Errorf("Error writing to socket: %s", err.Error())
+			continue
+		}
+
+		// FIXME: If our packet exceeds our buf size we'll get a partial read
+		// and this request, and the next will fail. The correct logic would be
+		// to realloc and read more if pack len > buff size.
+		resp := make([]byte, rxBufSize, rxBufSize)
+		var n int
+		n, err = x.Conn.Read(resp)
+		if err != nil {
+			err = fmt.Errorf("Error reading from UDP: %s", err.Error())
+			continue
+		}
+
+		result, err = unmarshal(resp[:n])
+		if err != nil {
+			err = fmt.Errorf("Unable to decode packet: %s", err.Error())
+			continue
+		}
+		if result == nil || len(result.Variables) < 1 {
+			err = fmt.Errorf("Unable to decode packet: nil")
+			continue
+		}
+
+		validID := false
+		for _, id := range allReqIDs {
+			if id == result.RequestID {
+				validID = true
+			}
+		}
+		if !validID {
+			err = fmt.Errorf("Out of order response")
+			continue
+		}
+
+		// Success!
+		return result, nil
 	}
 
-	// Read and unmarshal the response
-	resp := make([]byte, 4096, 4096)
-	n, err := x.Conn.Read(resp)
-	if err != nil {
-		return nil, fmt.Errorf("Error reading from UDP: %s", err.Error())
-	}
-
-	packetIn, err := unmarshal(resp[:n])
-	if err != nil {
-		return nil, fmt.Errorf("Unable to decode packet: %s", err.Error())
-	}
-	if packetIn == nil {
-		return nil, fmt.Errorf("Unable to decode packet: nil")
-	}
-	if len(packetIn.Variables) < 1 {
-		return nil, fmt.Errorf("No response received.")
-	}
-
-	// FIXME: We should check that our request id matches, and if it fails
-	// jump back up to our read gain (i.e. handle late arriving 'dropped' packet)
-	//if packetIn.RequestID != requestID {
-	//	Try again!
-	//}
-
-	return packetIn, nil
+	// Return last error
+	return nil, err
 }
 
 //Get send an SNMP GET request using the connection made with Connect
@@ -232,4 +276,39 @@ func (x *GoSNMP) GetBulk(oids []string, nonRepeaters uint8, maxReps uint8) (resu
 		MaxReps:      maxReps,
 	}
 	return x.send(data, packetOut)
+}
+
+// SNMP Walk functions - Analogous to net-snmp's snmpwalk commands
+
+//WalkFunc is the type of the function called for each data unit visited
+//by the Walk function.  If an error is returned processing stops.
+type WalkFunc func(dataUnit SNMPData) error
+
+//BulkWalk retrieves a subtree of values using GETBULK. As the tree is
+//walked walkFn is called for each new value. The function immediately returns
+//an error if either there is an underlaying SNMP error (e.g. GetBulk fails),
+//or if walkFn returns an error.
+func (x *GoSNMP) BulkWalk(rootOid string, walkFn WalkFunc) error {
+	return x.walk(GetBulkRequest, rootOid, walkFn)
+}
+
+//BulkWalkAll is similar to BulkWalk but returns a filled array of all values rather than
+//using a callback function to stream results.
+func (x *GoSNMP) BulkWalkAll(rootOid string) (results []SNMPData, err error) {
+	return x.walkAll(GetBulkRequest, rootOid)
+}
+
+//Walk retrieves a subtree of values using GETNEXT - a request is made for each
+//value, unlike BulkWalk which does this operation in batches. As the tree is
+//walked walkFn is called for each new value. The function immediately returns
+//an error if either there is an underlaying SNMP error (e.g. GetNext fails),
+//or if walkFn returns an error.
+func (x *GoSNMP) Walk(rootOid string, walkFn WalkFunc) error {
+	return x.walk(GetNextRequest, rootOid, walkFn)
+}
+
+//WalkAll is similar to Walk but returns a filled array of all values rather than
+//using a callback function to stream results.
+func (x *GoSNMP) WalkAll(rootOid string) (results []SNMPData, err error) {
+	return x.walkAll(GetNextRequest, rootOid)
 }
