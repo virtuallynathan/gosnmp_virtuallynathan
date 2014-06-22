@@ -94,7 +94,7 @@ func (x *GoSNMP) Connect() error {
 
 // Close the net.conn in WapSNMP.
 func (x *GoSNMP) Close() error {
-	return x.conn.Close()
+	return x.Conn.Close()
 }
 
 // generic "sender"
