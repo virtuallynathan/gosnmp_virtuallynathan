@@ -92,6 +92,11 @@ func (x *GoSNMP) Connect() error {
 	return nil
 }
 
+// Close the net.conn in WapSNMP.
+func (x *GoSNMP) Close() error {
+	return x.conn.Close()
+}
+
 // generic "sender"
 func (x *GoSNMP) send(pdus []SNMPData, packetOut *SNMPPacket) (result *SNMPPacket, err error) {
 	defer func() {
