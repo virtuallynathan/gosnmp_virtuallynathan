@@ -124,7 +124,7 @@ The following BER types have been implemented:
 * 0x02 Integer
 * 0x04 OctetString
 * 0x06 ObjectIdentifier
-* 0x40 IPAddress (IPv4 Only, IPv6 TODO)
+* 0x40 IPAddress (IPv4 & IPv6)
 * 0x41 Counter32
 * 0x42 Gauge32
 * 0x43 TimeTicks
