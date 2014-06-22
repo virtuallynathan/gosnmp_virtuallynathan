@@ -13,3 +13,6 @@ notificaitons:
 
 install:
 - go get github.com/virtuallynathan/gosnmp
+
+script:
+- ./non-verax-tests.sh
